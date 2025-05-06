@@ -59,97 +59,116 @@ export function CreateTemplateModal() {
           <Plus className="h-4 w-4 mr-2" /> Create Template
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[650px]">
+      <DialogContent className="sm:max-w-[700px] p-0">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className="text-xl text-brand-accent">Create Email Template</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Create a new email template for your campaigns. Templates can include personalization tokens.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-5 py-5">
-            <div className="grid grid-cols-5 items-center gap-4">
-              <Label htmlFor="templateName" className="text-right font-medium text-brand-accent">
+          
+          <div className="px-6 py-4 space-y-6">
+            {/* Template Name */}
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+              <Label htmlFor="templateName" className="md:text-right font-medium text-brand-accent">
                 Name
               </Label>
-              <Input
-                id="templateName"
-                value={templateName}
-                onChange={(e) => setTemplateName(e.target.value)}
-                className="col-span-4"
-                placeholder="Monthly Newsletter"
-                required
-              />
+              <div className="md:col-span-3">
+                <Input
+                  id="templateName"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="Monthly Newsletter"
+                  required
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-5 items-center gap-4">
-              <Label htmlFor="category" className="text-right font-medium text-brand-accent">
+            
+            {/* Category */}
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+              <Label htmlFor="category" className="md:text-right font-medium text-brand-accent">
                 Category
               </Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="col-span-4">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newsletter">Newsletter</SelectItem>
-                  <SelectItem value="promotion">Promotion</SelectItem>
-                  <SelectItem value="announcement">Announcement</SelectItem>
-                  <SelectItem value="event">Event</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="md:col-span-3">
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newsletter">Newsletter</SelectItem>
+                    <SelectItem value="promotion">Promotion</SelectItem>
+                    <SelectItem value="announcement">Announcement</SelectItem>
+                    <SelectItem value="event">Event</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="grid grid-cols-5 items-center gap-4">
-              <Label htmlFor="description" className="text-right font-medium text-brand-accent">
+            
+            {/* Description */}
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="md:text-right font-medium text-brand-accent">
                 Description
               </Label>
-              <Input
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="col-span-4"
-                placeholder="Template for monthly updates and news"
-              />
+              <div className="md:col-span-3">
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Template for monthly updates and news"
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-5 items-center gap-4">
-              <Label htmlFor="subject" className="text-right font-medium text-brand-accent">
+            
+            {/* Subject Line */}
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+              <Label htmlFor="subject" className="md:text-right font-medium text-brand-accent">
                 Subject Line
               </Label>
-              <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="col-span-4"
-                placeholder="Your Monthly Newsletter"
-                required
-              />
+              <div className="md:col-span-3">
+                <Input
+                  id="subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Your Monthly Newsletter"
+                  required
+                />
+              </div>
             </div>
-            <div className="grid grid-cols-5 items-start gap-4">
-              <Label htmlFor="content" className="text-right pt-2 font-medium text-brand-accent">
+            
+            {/* Content */}
+            <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
+              <Label htmlFor="content" className="md:text-right pt-2 font-medium text-brand-accent">
                 Content
               </Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="col-span-4"
-                placeholder="Hello {{first_name}}, welcome to our newsletter..."
-                rows={12}
-                required
-              />
+              <div className="md:col-span-3">
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Hello {{first_name}}, welcome to our newsletter..."
+                  rows={10}
+                  required
+                />
+              </div>
             </div>
-            <div className="col-span-5 bg-muted/30 p-4 rounded-md mt-2">
-              <p className="text-sm font-medium text-brand-accent mb-2">Available Personalization Tokens:</p>
-              <div className="grid grid-cols-2 gap-2">
-                <code className="bg-muted p-1 rounded text-xs">{"{{first_name}}"}</code>
-                <code className="bg-muted p-1 rounded text-xs">{"{{last_name}}"}</code>
-                <code className="bg-muted p-1 rounded text-xs">{"{{email}}"}</code>
-                <code className="bg-muted p-1 rounded text-xs">{"{{company}}"}</code>
-                <code className="bg-muted p-1 rounded text-xs">{"{{unsubscribe_link}}"}</code>
-                <code className="bg-muted p-1 rounded text-xs">{"{{current_date}}"}</code>
+            
+            {/* Personalization Tokens */}
+            <div className="mt-6 bg-muted/20 p-5 rounded-md">
+              <p className="text-sm font-medium text-brand-accent mb-3">Available Personalization Tokens:</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <code className="bg-muted p-2 rounded text-xs">{"{{first_name}}"}</code>
+                <code className="bg-muted p-2 rounded text-xs">{"{{last_name}}"}</code>
+                <code className="bg-muted p-2 rounded text-xs">{"{{email}}"}</code>
+                <code className="bg-muted p-2 rounded text-xs">{"{{company}}"}</code>
+                <code className="bg-muted p-2 rounded text-xs">{"{{unsubscribe_link}}"}</code>
+                <code className="bg-muted p-2 rounded text-xs">{"{{current_date}}"}</code>
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2 mt-2">
+          
+          <DialogFooter className="px-6 py-4 bg-muted/10 flex items-center justify-end space-x-3">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>

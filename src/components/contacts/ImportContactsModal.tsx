@@ -67,24 +67,26 @@ export function ImportContactsModal() {
           <CloudUpload className="h-4 w-4 mr-2" /> Import Contacts
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px] p-0">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle className="text-xl text-brand-accent">Import Contacts</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Upload a CSV file to import contacts to a list. Make sure your file follows the expected format.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-5 py-5">
-            <div className="border rounded-lg p-5 bg-muted/10">
-              <div className="flex flex-col items-center justify-center text-center">
-                <div className="mb-3 w-full bg-white border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-brand-highlight transition-colors">
-                  <label htmlFor="file" className="cursor-pointer flex flex-col items-center gap-2">
-                    <Upload className="h-10 w-10 text-brand-highlight" />
-                    <span className="text-sm font-medium text-brand-accent">
+          
+          <div className="px-6 py-4 space-y-6">
+            {/* File Upload Area */}
+            <div className="bg-muted/10 rounded-lg overflow-hidden">
+              <div className="flex flex-col items-center justify-center text-center p-6">
+                <div className="w-full bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 cursor-pointer hover:border-brand-highlight transition-colors">
+                  <label htmlFor="file" className="cursor-pointer flex flex-col items-center gap-3">
+                    <Upload className="h-12 w-12 text-brand-highlight" />
+                    <span className="text-base font-medium text-brand-accent">
                       Drag & drop or click to upload a CSV file
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground mt-1">
                       {file ? file.name : "Maximum file size: 10MB"}
                     </span>
                     <Input
@@ -100,71 +102,80 @@ export function ImportContactsModal() {
               </div>
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="targetList" className="text-right font-medium text-brand-accent">
+            {/* Target List */}
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4 pt-2">
+              <Label htmlFor="targetList" className="md:text-right font-medium text-brand-accent">
                 Target List
               </Label>
-              <Select value={targetList} onValueChange={setTargetList} required>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a list" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="main">Main Subscribers</SelectItem>
-                  <SelectItem value="electronics">Product Interest - Electronics</SelectItem>
-                  <SelectItem value="vip">VIP Customers</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <Separator className="my-1" />
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="hasHeaders" className="text-right font-medium text-brand-accent">
-                Has Headers
-              </Label>
-              <div className="flex items-center space-x-2 col-span-3">
-                <Switch
-                  id="hasHeaders"
-                  checked={hasHeaders}
-                  onCheckedChange={setHasHeaders}
-                />
-                <Label htmlFor="hasHeaders" className="text-sm text-muted-foreground">
-                  First row contains column headers
-                </Label>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="skipDuplicates" className="text-right font-medium text-brand-accent">
-                Skip Duplicates
-              </Label>
-              <div className="flex items-center space-x-2 col-span-3">
-                <Switch
-                  id="skipDuplicates"
-                  checked={skipDuplicates}
-                  onCheckedChange={setSkipDuplicates}
-                />
-                <Label htmlFor="skipDuplicates" className="text-sm text-muted-foreground">
-                  Skip importing duplicate email addresses
-                </Label>
+              <div className="md:col-span-3">
+                <Select value={targetList} onValueChange={setTargetList} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a list" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="main">Main Subscribers</SelectItem>
+                    <SelectItem value="electronics">Product Interest - Electronics</SelectItem>
+                    <SelectItem value="vip">VIP Customers</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
-            <div className="col-span-4 bg-muted/30 p-4 rounded-md mt-2">
+            <Separator className="my-2" />
+            
+            {/* Import Options */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                <Label htmlFor="hasHeaders" className="md:text-right font-medium text-brand-accent">
+                  File Headers
+                </Label>
+                <div className="flex items-center space-x-3 md:col-span-3">
+                  <Switch
+                    id="hasHeaders"
+                    checked={hasHeaders}
+                    onCheckedChange={setHasHeaders}
+                  />
+                  <Label htmlFor="hasHeaders" className="text-sm text-muted-foreground font-normal">
+                    First row contains column headers
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                <Label htmlFor="skipDuplicates" className="md:text-right font-medium text-brand-accent">
+                  Duplicates
+                </Label>
+                <div className="flex items-center space-x-3 md:col-span-3">
+                  <Switch
+                    id="skipDuplicates"
+                    checked={skipDuplicates}
+                    onCheckedChange={setSkipDuplicates}
+                  />
+                  <Label htmlFor="skipDuplicates" className="text-sm text-muted-foreground font-normal">
+                    Skip importing duplicate email addresses
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            {/* CSV Format Info */}
+            <div className="mt-6 bg-muted/20 p-5 rounded-md">
               <div className="flex items-start gap-3">
                 <FileText className="h-5 w-5 text-brand-accent flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-brand-accent">Expected CSV Format:</p>
-                  <p className="text-xs text-muted-foreground mt-1 font-mono">
+                  <p className="text-sm font-medium text-brand-accent mb-2">Expected CSV Format:</p>
+                  <p className="text-xs font-mono bg-muted p-2 rounded mb-2">
                     email,first_name,last_name,company,phone
                   </p>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground">
                     The email field is required. All other fields are optional.
                   </p>
                 </div>
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2 mt-2">
+          
+          <DialogFooter className="px-6 py-4 bg-muted/10 flex items-center justify-end space-x-3">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
