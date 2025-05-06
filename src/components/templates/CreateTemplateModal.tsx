@@ -112,7 +112,7 @@ export function CreateTemplateModal() {
               />
             </div>
             <div className="col-span-4 text-sm text-muted-foreground">
-              <p>Available tokens: {{first_name}}, {{last_name}}, {{email}}, {{unsubscribe}}</p>
+              <p>Available tokens: {"{{first_name}}, {{last_name}}, {{email}}, {{unsubscribe}}"}</p>
             </div>
           </div>
           <DialogFooter>
