@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FileText, Plus, Search } from "lucide-react";
 import { TemplateCard } from "@/components/templates/TemplateCard";
+import { CreateTemplateModal } from "@/components/templates/CreateTemplateModal";
 
 // Placeholder templates data
 const templatesData = [
@@ -69,9 +70,7 @@ const Templates = () => {
     <MainLayout>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-brand-accent mb-4 md:mb-0">Email Templates</h1>
-        <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-          <Plus className="h-4 w-4 mr-2" /> Create Template
-        </Button>
+        <CreateTemplateModal />
       </div>
       
       <Card className="mb-8">
@@ -104,9 +103,7 @@ const Templates = () => {
                 `No templates match "${searchTerm}"` : 
                 "You don't have any templates yet"}
             </p>
-            <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-              <Plus className="h-4 w-4 mr-2" /> Create Template
-            </Button>
+            <CreateTemplateModal />
           </CardContent>
         </Card>
       )}

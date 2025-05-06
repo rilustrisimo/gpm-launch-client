@@ -18,7 +18,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       
       <div className={cn(
         "flex-1 transition-all duration-300", 
-        sidebarOpen ? "ml-64" : "ml-0"
+        sidebarOpen ? "ml-64 lg:ml-64" : "ml-0 lg:ml-20"
       )}>
         <header className="h-16 px-6 bg-brand-white flex items-center shadow-sm z-10 sticky top-0">
           <Button 
@@ -29,7 +29,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-semibold text-brand-accent">Blast Master</h1>
+          <h1 className="text-xl font-semibold text-brand-accent">GPM Launch</h1>
         </header>
         <main className="px-6 py-8 max-w-7xl mx-auto">
           {children}

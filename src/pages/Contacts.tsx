@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContactList } from "@/components/contacts/ContactList";
 import { CloudUpload, Plus, Search, Users } from "lucide-react";
+import { CreateContactListModal } from "@/components/contacts/CreateContactListModal";
+import { ImportContactsModal } from "@/components/contacts/ImportContactsModal";
 
 // Placeholder contact lists data
 const contactListsData = [
@@ -55,12 +57,8 @@ const Contacts = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-brand-accent mb-4 md:mb-0">Contact Lists</h1>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" className="justify-start">
-            <CloudUpload className="h-4 w-4 mr-2" /> Import Contacts
-          </Button>
-          <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-            <Plus className="h-4 w-4 mr-2" /> Create List
-          </Button>
+          <ImportContactsModal />
+          <CreateContactListModal />
         </div>
       </div>
       
@@ -125,9 +123,7 @@ const Contacts = () => {
                     `No contact lists match "${searchTerm}"` : 
                     "You don't have any contact lists yet"}
                 </p>
-                <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-                  <Plus className="h-4 w-4 mr-2" /> Create Contact List
-                </Button>
+                <CreateContactListModal />
               </CardContent>
             </Card>
           )}

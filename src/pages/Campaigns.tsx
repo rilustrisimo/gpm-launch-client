@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Mail, Plus, Search } from "lucide-react";
 import { CampaignCard } from "@/components/campaigns/CampaignCard";
+import { CreateCampaignModal } from "@/components/campaigns/CreateCampaignModal";
 
 // Placeholder campaign data
 const campaignData = [
@@ -75,9 +76,7 @@ const Campaigns = () => {
     <MainLayout>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
         <h1 className="text-3xl font-bold text-brand-accent mb-4 md:mb-0">Campaigns</h1>
-        <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-          <Plus className="h-4 w-4 mr-2" /> Create Campaign
-        </Button>
+        <CreateCampaignModal />
       </div>
       
       <Card className="mb-8">
@@ -121,9 +120,7 @@ const Campaigns = () => {
                 `No campaigns match "${searchTerm}" in the ${activeTab === 'all' ? 'selected filters' : activeTab + ' category'}` : 
                 `You don't have any ${activeTab === 'all' ? '' : activeTab + ' '}campaigns yet`}
             </p>
-            <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-              <Plus className="h-4 w-4 mr-2" /> Create Campaign
-            </Button>
+            <CreateCampaignModal />
           </CardContent>
         </Card>
       )}
