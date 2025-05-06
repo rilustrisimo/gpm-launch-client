@@ -17,8 +17,8 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
       <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
       
       <div className={cn(
-        "flex-1 transition-all duration-300", 
-        sidebarOpen ? "ml-64 lg:ml-64" : "ml-0 lg:ml-20"
+        "flex-1 transition-all duration-300 w-full", 
+        sidebarOpen ? "lg:ml-64" : "lg:ml-20"
       )}>
         <header className="h-16 px-6 bg-brand-white flex items-center shadow-sm z-10 sticky top-0">
           <Button 
