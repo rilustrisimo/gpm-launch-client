@@ -29,7 +29,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-semibold text-brand-accent">GPM Launch</h1>
+          <h1 className="text-xl font-semibold text-brand-accent">Email Blasting</h1>
         </header>
         <main className="px-6 py-8 max-w-7xl mx-auto">
           {children}

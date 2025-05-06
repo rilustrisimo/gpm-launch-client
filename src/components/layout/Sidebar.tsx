@@ -46,7 +46,7 @@ export const Sidebar = ({ open, setOpen }: SidebarProps) => {
           "text-xl font-bold text-brand-highlight transition-opacity duration-200",
           open ? "opacity-100" : "opacity-0 lg:hidden"
         )}>
-          BlastMaster
+          GPM Launch
         </h1>
         <Button 
           variant="ghost" 
