@@ -1,0 +1,17 @@
+name = "gpm-launch-client"
+account_id = ""  # Your Cloudflare account ID will be filled in automatically
+
+[build]
+command = "bun install && npm run build:prod"
+destination = "dist"
+environment = { NODE_VERSION = "20" }
+
+[site]
+bucket = "dist"
+
+[env.production]
+name = "production"
+route = ""  # Your domain will be configured in Cloudflare dashboard
+
+[env.preview]
+name = "preview"

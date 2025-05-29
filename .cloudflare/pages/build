@@ -1,0 +1,4 @@
+# Install dependencies without using frozen lockfile
+bun install
+# Build the application
+npm run build

@@ -1,0 +1,10 @@
+{
+  "name": "gravitypointmedia-launch",
+  "build": {
+    "command": "bun install && npm run build",
+    "environment": {
+      "NODE_VERSION": "20"
+    },
+    "output_directory": "dist"
+  }
+}
