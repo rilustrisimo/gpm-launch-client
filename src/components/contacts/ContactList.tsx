@@ -1,16 +1,12 @@
-
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
-  ChevronDown, 
-  ChevronRight, 
   Download, 
   Plus, 
   Search, 
-  Trash, 
   Upload 
 } from "lucide-react";
 import { 
@@ -21,167 +17,222 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-
-// Placeholder contacts data
-const contactsData = {
-  "1": {
-    listName: "Main Subscribers",
-    contacts: [
-      { id: "1", email: "john.doe@example.com", firstName: "John", lastName: "Doe", status: "Active" },
-      { id: "2", email: "jane.smith@example.com", firstName: "Jane", lastName: "Smith", status: "Active" },
-      { id: "3", email: "michael.johnson@example.com", firstName: "Michael", lastName: "Johnson", status: "Active" },
-      { id: "4", email: "emily.wilson@example.com", firstName: "Emily", lastName: "Wilson", status: "Unsubscribed" },
-      { id: "5", email: "robert.brown@example.com", firstName: "Robert", lastName: "Brown", status: "Active" },
-      { id: "6", email: "sarah.davis@example.com", firstName: "Sarah", lastName: "Davis", status: "Bounced" },
-      { id: "7", email: "david.miller@example.com", firstName: "David", lastName: "Miller", status: "Active" },
-      { id: "8", email: "jennifer.taylor@example.com", firstName: "Jennifer", lastName: "Taylor", status: "Active" },
-      { id: "9", email: "james.anderson@example.com", firstName: "James", lastName: "Anderson", status: "Active" },
-      { id: "10", email: "lisa.thomas@example.com", firstName: "Lisa", lastName: "Thomas", status: "Unsubscribed" },
-    ],
-  },
-  "2": {
-    listName: "Product Interest - Electronics",
-    contacts: [
-      { id: "1", email: "tech.enthusiast@example.com", firstName: "Tech", lastName: "Enthusiast", status: "Active" },
-      { id: "2", email: "gadget.lover@example.com", firstName: "Gadget", lastName: "Lover", status: "Active" },
-      { id: "3", email: "electronics.fan@example.com", firstName: "Electronics", lastName: "Fan", status: "Active" },
-    ],
-  },
-  "3": {
-    listName: "VIP Customers",
-    contacts: [
-      { id: "1", email: "vip.customer1@example.com", firstName: "VIP", lastName: "Customer1", status: "Active" },
-      { id: "2", email: "vip.customer2@example.com", firstName: "VIP", lastName: "Customer2", status: "Active" },
-    ],
-  },
-  "4": {
-    listName: "Event Attendees - Spring Conference",
-    contacts: [
-      { id: "1", email: "attendee1@example.com", firstName: "Attendee", lastName: "One", status: "Active" },
-      { id: "2", email: "attendee2@example.com", firstName: "Attendee", lastName: "Two", status: "Active" },
-      { id: "3", email: "attendee3@example.com", firstName: "Attendee", lastName: "Three", status: "Bounced" },
-    ],
-  },
-};
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useContactsInList } from "@/hooks/useContactLists";
+import { CreateContactModal } from "./CreateContactModal";
+import { ImportContactsModal } from "./ImportContactsModal";
+import { ExportContactListModal } from "./ExportContactListModal";
+import { EditContactModal } from "./EditContactModal";
+import { DeleteContactDialog } from "./DeleteContactDialog";
+import type { Contact, ContactList } from "@/lib/types";
+import type { ContactsInListResponse } from "@/services/contactList";
 
 interface ContactListProps {
   listId: string;
   onBack: () => void;
 }
 
-export const ContactList = ({ listId, onBack }: ContactListProps) => {
+type ContactListSummary = Pick<ContactList, 'id' | 'name' | 'description' | 'count'>;
+
+export function ContactList({ listId, onBack }: ContactListProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  const { data, isLoading, error } = useContactsInList(listId, currentPage, itemsPerPage, searchTerm);
+
+  const contactList = data?.contactList as ContactListSummary;
+  const contacts = data?.contacts || [];
+  const totalItems = data?.pagination?.total || 0;
+  const totalPages = data?.pagination?.pages || 1;
   
-  // Get list data
-  const listData = contactsData[listId as keyof typeof contactsData];
+  // Handle page changes
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
   
-  if (!listData) {
+  // Generate page numbers to show (with ellipsis for large ranges)
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    
+    if (totalPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always include first page
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('ellipsis');
+      }
+      
+      // Pages around current page
+      const startPage = Math.max(2, currentPage - 1);
+      const endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('ellipsis');
+      }
+      
+      // Always include last page
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
+    }
+    
+    return pages;
+  };
+
+  // Reset to first page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+  
+  if (isLoading) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <p>Contact list not found.</p>
-          <Button onClick={onBack} className="mt-4">
-            <ArrowLeft className="h-4 w-4 mr-2" /> Back to Lists
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent"></div>
+        <span className="ml-2">Loading contacts...</span>
+      </div>
     );
   }
   
-  // Filter contacts based on search term
-  const filteredContacts = listData.contacts.filter(contact => 
-    contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    contact.lastName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+  if (error) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        Error loading contacts. Please try again.
+      </div>
+    );
+  }
+  
   return (
-    <div>
-      <Button 
-        variant="ghost" 
-        onClick={onBack}
-        className="mb-4"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" /> Back to Lists
-      </Button>
-      
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-brand-accent mb-4 md:mb-0">
-          {listData.listName}
-          <span className="ml-2 text-sm font-normal text-gray-500">
-            ({listData.contacts.length} contacts)
-          </span>
-        </h2>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button variant="outline" className="justify-start">
-            <Upload className="h-4 w-4 mr-2" /> Import
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={onBack} className="h-10">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Lists
           </Button>
-          <Button variant="outline" className="justify-start">
+          <h2 className="text-2xl font-semibold">{contactList?.name || 'Loading...'}</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <ImportContactsModal listId={listId} />
+          <CreateContactModal listId={listId} />
+          <Button 
+            variant="outline" 
+            onClick={() => setShowExportModal(true)}
+            disabled={!contactList || totalItems === 0}
+          >
             <Download className="h-4 w-4 mr-2" /> Export
-          </Button>
-          <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-            <Plus className="h-4 w-4 mr-2" /> Add Contact
           </Button>
         </div>
       </div>
-      
+
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search contacts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select
+          value={itemsPerPage.toString()}
+          onValueChange={(value) => {
+            setItemsPerPage(Number(value));
+            setCurrentPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Items per page" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="10">10 per page</SelectItem>
+            <SelectItem value="25">25 per page</SelectItem>
+            <SelectItem value="50">50 per page</SelectItem>
+            <SelectItem value="100">100 per page</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Card className="mb-6">
         <CardContent className="p-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search contacts by name or email..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>First Name</TableHead>
-                  <TableHead>Last Name</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredContacts.map((contact) => (
+                {contacts.map((contact) => (
                   <TableRow key={contact.id}>
-                    <TableCell className="font-medium">{contact.email}</TableCell>
-                    <TableCell>{contact.firstName}</TableCell>
-                    <TableCell>{contact.lastName}</TableCell>
                     <TableCell>
-                      <span 
-                        className={`
-                          inline-block px-2 py-1 rounded text-xs font-medium
-                          ${contact.status === 'Active' ? 'bg-green-100 text-green-800' : ''}
-                          ${contact.status === 'Unsubscribed' ? 'bg-gray-100 text-gray-800' : ''}
-                          ${contact.status === 'Bounced' ? 'bg-red-100 text-red-800' : ''}
-                        `}
-                      >
+                      {contact.firstName} {contact.lastName}
+                    </TableCell>
+                    <TableCell>{contact.email}</TableCell>
+                    <TableCell>{contact.phone || "-"}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        contact.status === "active" ? "bg-green-100 text-green-800" :
+                        contact.status === "unsubscribed" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-red-100 text-red-800"
+                      }`}>
                         {contact.status}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Trash className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                      </Button>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedContact(contact)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => setSelectedContact(contact)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 
-                {filteredContacts.length === 0 && (
+                {contacts.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="py-8 text-center">
-                      <p className="text-gray-500">No contacts found matching your search.</p>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      No contacts found.
                     </TableCell>
                   </TableRow>
                 )}
@@ -190,6 +241,81 @@ export const ContactList = ({ listId, onBack }: ContactListProps) => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Pagination controls */}
+      {totalItems > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <span>
+              Showing {Math.min(1 + (currentPage - 1) * itemsPerPage, totalItems)}-{Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} contacts
+            </span>
+          </div>
+          
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => goToPage(currentPage - 1)}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {getPageNumbers().map((page, i) => (
+                page === 'ellipsis' ? (
+                  <PaginationItem key={`ellipsis-${i}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      isActive={page === currentPage}
+                      onClick={() => goToPage(page)}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              ))}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => goToPage(currentPage + 1)}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+      
+      {selectedContact && (
+        <EditContactModal
+          contact={selectedContact}
+          open={!!selectedContact}
+          onOpenChange={() => setSelectedContact(null)}
+        />
+      )}
+      
+      {selectedContact && (
+        <DeleteContactDialog
+          contact={selectedContact}
+          open={!!selectedContact}
+          onOpenChange={() => setSelectedContact(null)}
+        />
+      )}
+      
+      {showExportModal && contactList && (
+        <ExportContactListModal
+          contactList={{
+            id: contactList.id,
+            name: contactList.name,
+            count: totalItems
+          }}
+          open={showExportModal}
+          onOpenChange={setShowExportModal}
+        />
+      )}
     </div>
   );
-};
+}

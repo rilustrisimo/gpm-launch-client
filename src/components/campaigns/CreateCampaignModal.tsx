@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,43 +11,57 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { CalendarIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useTemplates, useContactLists, useCreateCampaign } from "@/hooks";
+import { Campaign } from "@/lib/types";
 
 export function CreateCampaignModal() {
   const [open, setOpen] = useState(false);
   const [campaignName, setCampaignName] = useState("");
   const [subject, setSubject] = useState("");
-  const [contactList, setContactList] = useState("");
-  const [template, setTemplate] = useState("");
-  const [date, setDate] = useState<Date>();
-  const { toast } = useToast();
+  const [contactListId, setContactListId] = useState("");
+  const [templateId, setTemplateId] = useState("");
+  const [scheduledFor, setScheduledFor] = useState<Date | undefined>(undefined);
+
+  // Fetch templates and contact lists
+  const { data: templates, isLoading: templatesLoading } = useTemplates();
+  const { data: contactLists, isLoading: contactListsLoading } = useContactLists();
+  
+  // Create campaign mutation
+  const { mutate: createCampaign, isPending: isCreating } = useCreateCampaign();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    toast({
-      title: "Campaign created",
-      description: "Your campaign has been created successfully.",
-    });
+    const newCampaign: Partial<Campaign> = {
+      name: campaignName,
+      subject,
+      templateId: parseInt(templateId),
+      contactListId: parseInt(contactListId),
+      scheduledFor: scheduledFor ? scheduledFor.toISOString() : null
+    };
     
-    setOpen(false);
-    resetForm();
+    createCampaign(newCampaign, {
+      onSuccess: () => {
+        setOpen(false);
+        resetForm();
+      }
+    });
   };
 
   const resetForm = () => {
     setCampaignName("");
     setSubject("");
-    setContactList("");
-    setTemplate("");
-    setDate(undefined);
+    setContactListId("");
+    setTemplateId("");
+    setScheduledFor(undefined);
   };
 
   return (
@@ -97,14 +110,25 @@ export function CreateCampaignModal() {
               <Label htmlFor="contactList" className="text-right">
                 Contact List
               </Label>
-              <Select value={contactList} onValueChange={setContactList} required>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a contact list" />
+              <Select value={contactListId} onValueChange={setContactListId} required>
+                <SelectTrigger id="contactList" className="col-span-3">
+                  <SelectValue placeholder={contactListsLoading ? "Loading lists..." : "Select a contact list"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="main">Main Subscribers</SelectItem>
-                  <SelectItem value="electronics">Product Interest - Electronics</SelectItem>
-                  <SelectItem value="vip">VIP Customers</SelectItem>
+                  {contactListsLoading ? (
+                    <div className="p-2 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Loading contact lists...</span>
+                    </div>
+                  ) : contactLists && contactLists.length > 0 ? (
+                    contactLists.map((list) => (
+                      <SelectItem key={list.id} value={list.id.toString()}>
+                        {list.name} ({list.count} contacts)
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-gray-500">No contact lists found</div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -112,15 +136,25 @@ export function CreateCampaignModal() {
               <Label htmlFor="template" className="text-right">
                 Email Template
               </Label>
-              <Select value={template} onValueChange={setTemplate} required>
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a template" />
+              <Select value={templateId} onValueChange={setTemplateId} required>
+                <SelectTrigger id="template" className="col-span-3">
+                  <SelectValue placeholder={templatesLoading ? "Loading templates..." : "Select a template"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="welcome">Welcome Email</SelectItem>
-                  <SelectItem value="newsletter">Monthly Newsletter</SelectItem>
-                  <SelectItem value="product">Product Announcement</SelectItem>
-                  <SelectItem value="promotion">Special Promotion</SelectItem>
+                  {templatesLoading ? (
+                    <div className="p-2 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Loading templates...</span>
+                    </div>
+                  ) : templates && templates.length > 0 ? (
+                    templates.map((template) => (
+                      <SelectItem key={template.id} value={template.id.toString()}>
+                        {template.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-center text-gray-500">No templates found</div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -132,22 +166,24 @@ export function CreateCampaignModal() {
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
+                      id="date"
                       variant={"outline"}
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !date && "text-muted-foreground"
+                        !scheduledFor && "text-muted-foreground"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {date ? format(date, "PPP") : <span>Pick a date</span>}
+                      {scheduledFor ? format(scheduledFor, "PPP") : <span>Pick a date</span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={date}
-                      onSelect={setDate}
+                      selected={scheduledFor}
+                      onSelect={setScheduledFor}
                       initialFocus
+                      disabled={(date) => date < new Date()}
                     />
                   </PopoverContent>
                 </Popover>
@@ -158,8 +194,19 @@ export function CreateCampaignModal() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-              Create Campaign
+            <Button 
+              type="submit" 
+              className="bg-brand-highlight text-white hover:bg-brand-highlight/90"
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Campaign"
+              )}
             </Button>
           </DialogFooter>
         </form>

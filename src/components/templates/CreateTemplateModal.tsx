@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -22,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useCreateTemplate } from "@/hooks/use-templates";
 
 export function CreateTemplateModal() {
   const [open, setOpen] = useState(false);
@@ -31,17 +31,37 @@ export function CreateTemplateModal() {
   const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
   const { toast } = useToast();
+  const { mutate: createTemplate, isPending } = useCreateTemplate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    toast({
-      title: "Template created",
-      description: "Your email template has been created successfully.",
-    });
-    
-    setOpen(false);
-    resetForm();
+    createTemplate(
+      {
+        name: templateName,
+        description,
+        category,
+        subject,
+        content,
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Template created",
+            description: "Your email template has been created successfully.",
+          });
+          setOpen(false);
+          resetForm();
+        },
+        onError: (error) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to create template",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   const resetForm = () => {
@@ -81,6 +101,7 @@ export function CreateTemplateModal() {
                   onChange={(e) => setTemplateName(e.target.value)}
                   placeholder="Monthly Newsletter"
                   required
+                  disabled={isPending}
                 />
               </div>
             </div>
@@ -91,7 +112,7 @@ export function CreateTemplateModal() {
                 Category
               </Label>
               <div className="md:col-span-3">
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={setCategory} disabled={isPending}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
@@ -117,6 +138,7 @@ export function CreateTemplateModal() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Template for monthly updates and news"
+                  disabled={isPending}
                 />
               </div>
             </div>
@@ -133,6 +155,7 @@ export function CreateTemplateModal() {
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Your Monthly Newsletter"
                   required
+                  disabled={isPending}
                 />
               </div>
             </div>
@@ -150,6 +173,7 @@ export function CreateTemplateModal() {
                   placeholder="Hello {{first_name}}, welcome to our newsletter..."
                   rows={10}
                   required
+                  disabled={isPending}
                 />
               </div>
             </div>
@@ -169,14 +193,27 @@ export function CreateTemplateModal() {
           </div>
           
           <DialogFooter className="px-6 py-4 bg-muted/10 flex items-center justify-end space-x-3">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setOpen(false)}
+              disabled={isPending}
+            >
               Cancel
             </Button>
             <Button 
               type="submit" 
               className="bg-brand-highlight text-white hover:bg-brand-highlight/90"
+              disabled={isPending}
             >
-              Create Template
+              {isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Template'
+              )}
             </Button>
           </DialogFooter>
         </form>

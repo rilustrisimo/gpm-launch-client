@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,53 +7,56 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Loader2 } from "lucide-react";
-import { useCreateContactList } from "@/hooks/useContactLists";
+import { Loader2 } from "lucide-react";
+import { useUpdateContactList } from "@/hooks/useContactLists";
+import { ContactList } from "@/lib/types";
 
-export function CreateContactListModal() {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+interface EditContactListModalProps {
+  contactList: ContactList;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function EditContactListModal({ contactList, open, onOpenChange }: EditContactListModalProps) {
+  const [name, setName] = useState(contactList.name);
+  const [description, setDescription] = useState(contactList.description || "");
   
-  const { mutate: createList, isPending } = useCreateContactList();
+  const { mutate: updateList, isPending } = useUpdateContactList();
+
+  // Update form when contact list changes
+  useEffect(() => {
+    setName(contactList.name);
+    setDescription(contactList.description || "");
+  }, [contactList]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    createList(
-      { name, description },
+    updateList(
+      {
+        id: contactList.id,
+        listData: { name, description }
+      },
       {
         onSuccess: () => {
-          setOpen(false);
-          resetForm();
+          onOpenChange(false);
         }
       }
     );
   };
 
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-  };
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-brand-highlight text-white hover:bg-brand-highlight/90">
-          <Plus className="h-4 w-4 mr-2" /> New List
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Create Contact List</DialogTitle>
+            <DialogTitle>Edit Contact List</DialogTitle>
             <DialogDescription>
-              Create a new list to organize your contacts.
+              Update the contact list's information.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -66,7 +69,6 @@ export function CreateContactListModal() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="col-span-3"
-                placeholder="e.g. Newsletter Subscribers"
                 required
               />
             </div>
@@ -79,7 +81,6 @@ export function CreateContactListModal() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="col-span-3"
-                placeholder="Optional description"
                 rows={3}
               />
             </div>
@@ -88,7 +89,7 @@ export function CreateContactListModal() {
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
               disabled={isPending}
             >
               Cancel
@@ -101,10 +102,10 @@ export function CreateContactListModal() {
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
+                  Saving...
                 </>
               ) : (
-                "Create List"
+                "Save Changes"
               )}
             </Button>
           </DialogFooter>
@@ -112,4 +113,4 @@ export function CreateContactListModal() {
       </DialogContent>
     </Dialog>
   );
-}
+} 
