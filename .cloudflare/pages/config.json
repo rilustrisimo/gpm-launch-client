@@ -1,0 +1,6 @@
+{
+  "installCommand": "echo 'Skipping default install command'",
+  "buildCommand": "bash ./cloudflare-build.sh",
+  "outputDirectory": "dist",
+  "nodeVersion": "20"
+}

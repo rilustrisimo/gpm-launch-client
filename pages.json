@@ -1,7 +1,7 @@
 {
   "name": "gravitypointmedia-launch",
   "build": {
-    "command": "bun install && npm run build",
+    "command": "bash ./cloudflare-build.sh",
     "environment": {
       "NODE_VERSION": "20"
     },

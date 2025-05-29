@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:prod": "vite build --mode production",
+    "prepare-cloudflare": "bun install",
+    "cloudflare-pages": "npm run prepare-cloudflare && npm run build:prod",
     "lint": "eslint .",
     "preview": "vite preview"
   },
