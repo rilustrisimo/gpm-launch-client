@@ -19,7 +19,7 @@ export interface Campaign {
   templateId: number;
   contactListId: number;
   totalRecipients: number;
-  status: 'draft' | 'scheduled' | 'sending' | 'completed';
+  status: 'draft' | 'scheduled' | 'processing' | 'sending' | 'completed' | 'stopped';
   scheduledFor: string | null;
   sentAt: string | null;
   openRate: number;

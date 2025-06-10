@@ -160,5 +160,19 @@ export const campaignService = {
       `/campaigns/${id}/cancel-schedule`
     );
     return response.data.campaign;
+  },
+
+  sendNow: async (id: number): Promise<Campaign> => {
+    const response = await api.post<ApiResponse<{ campaign: Campaign }>>(
+      `/campaigns/${id}/send-now`
+    );
+    return response.data.campaign;
+  },
+
+  stopCampaign: async (id: number): Promise<Campaign> => {
+    const response = await api.post<ApiResponse<{ campaign: Campaign }>>(
+      `/campaigns/${id}/stop`
+    );
+    return response.data.campaign;
   }
 }; 
