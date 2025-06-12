@@ -14,7 +14,7 @@ interface UsePollingOptions {
  * Automatically manages polling lifecycle based on campaign status
  */
 export const useCampaignPolling = (
-  campaignId: number,
+  campaignId: string,
   currentStatus: string,
   options: UsePollingOptions = {}
 ) => {

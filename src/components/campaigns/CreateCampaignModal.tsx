@@ -54,12 +54,24 @@ export function CreateCampaignModal() {
       newErrors.subject = "Subject line is required";
     }
     
-    if (!templateId) {
+    if (!templateId || templateId === "") {
       newErrors.templateId = "Template is required";
+    } else {
+      // Validate UUID format (basic check)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(templateId)) {
+        newErrors.templateId = "Invalid template selection";
+      }
     }
     
-    if (!contactListId) {
+    if (!contactListId || contactListId === "") {
       newErrors.contactListId = "Contact list is required";
+    } else {
+      // Validate UUID format (basic check)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(contactListId)) {
+        newErrors.contactListId = "Invalid contact list selection";
+      }
     }
     
     if (!sendNow && !scheduledFor) {
@@ -83,16 +95,24 @@ export function CreateCampaignModal() {
       return;
     }
     
+    // Use UUIDs as strings - no conversion needed
     const newCampaign: Partial<Campaign> = {
       name: campaignName.trim(),
       subject: subject.trim(),
-      templateId: parseInt(templateId, 10),
-      contactListId: parseInt(contactListId, 10),
+      templateId: templateId, // Keep as UUID string
+      contactListId: contactListId, // Keep as UUID string
       sendingMode,
       emailsPerMinute: sendingMode === 'turtle' ? emailsPerMinute : undefined,
       maxConcurrentBatches: sendingMode === 'turtle' ? 1 : undefined,
       scheduledFor: sendNow ? undefined : scheduledFor?.toISOString()
     };
+    
+    // Debug log to see what's being sent
+    console.log('Creating campaign with data:', {
+      ...newCampaign,
+      templateId: typeof newCampaign.templateId,
+      contactListId: typeof newCampaign.contactListId
+    });
     
     createCampaign(newCampaign, {
       onSuccess: () => {

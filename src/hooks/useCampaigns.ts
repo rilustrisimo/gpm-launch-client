@@ -21,7 +21,7 @@ export const useCampaigns = (status?: string, search?: string) => {
 /**
  * Hook to fetch a single campaign by ID
  */
-export const useCampaign = (id: number) => {
+export const useCampaign = (id: string) => {
   return useQuery({
     queryKey: [CAMPAIGNS_KEY, id],
     queryFn: () => campaignService.getById(id),
@@ -32,7 +32,7 @@ export const useCampaign = (id: number) => {
 /**
  * Hook to fetch campaign statistics
  */
-export const useCampaignStats = (id: number) => {
+export const useCampaignStats = (id: string) => {
   return useQuery({
     queryKey: [CAMPAIGN_STATS_KEY, id],
     queryFn: () => campaignService.getStats(id),
@@ -61,7 +61,7 @@ export const useCreateCampaign = () => {
 /**
  * Hook to update an existing campaign
  */
-export const useUpdateCampaign = (id: number) => {
+export const useUpdateCampaign = (id: string) => {
   const queryClient = useQueryClient();
   
   return useMutation({
@@ -84,7 +84,7 @@ export const useDeleteCampaign = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: number) => campaignService.delete(id),
+    mutationFn: (id: string) => campaignService.delete(id),
     onSuccess: () => {
       toast.success('Campaign deleted successfully');
       queryClient.invalidateQueries({ queryKey: [CAMPAIGNS_KEY] });
@@ -102,7 +102,7 @@ export const useScheduleCampaign = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ campaignId, scheduledFor }: { campaignId: number; scheduledFor: string }) => {
+    mutationFn: async ({ campaignId, scheduledFor }: { campaignId: string; scheduledFor: string }) => {
       const response = await api.post(`/campaigns/${campaignId}/schedule`, { scheduledFor });
       return response.data;
     },
@@ -122,7 +122,7 @@ export const useCancelSchedule = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (campaignId: number) => {
+    mutationFn: async (campaignId: string) => {
       const response = await api.post(`/campaigns/${campaignId}/cancel-schedule`);
       return response.data;
     },
@@ -142,7 +142,7 @@ export const useSendCampaign = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (campaignId: number) => {
+    mutationFn: async (campaignId: string) => {
       const response = await api.post(`/campaigns/${campaignId}/send-now`);
       return response.data;
     },
@@ -162,7 +162,7 @@ export const useStopCampaign = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (campaignId: number) => {
+    mutationFn: async (campaignId: string) => {
       const response = await api.post(`/campaigns/${campaignId}/stop`);
       return response.data;
     },

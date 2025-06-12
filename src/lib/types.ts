@@ -12,12 +12,12 @@ export interface User {
 
 // Campaign
 export interface Campaign {
-  id: number;
-  userId: number;
+  id: string; // UUID
+  userId: string; // UUID
   name: string;
   subject: string;
-  templateId: number;
-  contactListId: number;
+  templateId: string; // UUID
+  contactListId: string; // UUID
   totalRecipients: number;
   status: 'draft' | 'scheduled' | 'processing' | 'sending' | 'completed' | 'stopped';
   scheduledFor: string | null;
@@ -52,7 +52,7 @@ export interface Template {
 
 // Contact
 export interface Contact {
-  id: number;
+  id: string; // UUID
   email: string;
   firstName: string;
   lastName: string;
@@ -67,7 +67,7 @@ export interface Contact {
 
 // Contact List
 export interface ContactList {
-  id: number;
+  id: string; // UUID
   name: string;
   description?: string;
   count: number;
@@ -77,9 +77,9 @@ export interface ContactList {
 
 // Campaign Statistics
 export interface CampaignStat {
-  id: number;
-  campaignId: number;
-  contactId: number;
+  id: string; // UUID
+  campaignId: string; // UUID
+  contactId: string; // UUID
   contact?: Contact;
   sent: boolean;
   delivered: boolean;
@@ -102,7 +102,7 @@ export interface DashboardStats {
   totalTemplates: number;
   deliveredEmails: number;
   recentCampaigns: {
-    id: number;
+    id: string; // UUID
     name: string;
     status: string;
     sentAt: string | null;
@@ -113,7 +113,7 @@ export interface DashboardStats {
 // Campaign Performance Statistics
 export interface CampaignPerformanceStats {
   campaigns: {
-    id: number;
+    id: string; // UUID
     name: string;
     sentAt: string;
     totalRecipients: number;

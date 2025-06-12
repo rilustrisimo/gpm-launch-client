@@ -31,7 +31,7 @@ export const campaignService = {
    * Get a campaign by ID
    * @param id - Campaign ID
    */
-  getById: async (id: number): Promise<Campaign> => {
+  getById: async (id: string): Promise<Campaign> => {
     try {
       const response = await api.get<ApiResponse<{ campaign: Campaign }>>(
         `/campaigns/${id}`
@@ -67,7 +67,7 @@ export const campaignService = {
    * @param id - Campaign ID
    * @param campaign - Updated campaign data
    */
-  update: async (id: number, campaign: Partial<Campaign>): Promise<Campaign> => {
+  update: async (id: string, campaign: Partial<Campaign>): Promise<Campaign> => {
     try {
       const response = await api.put<ApiResponse<{ campaign: Campaign }>>(
         `/campaigns/${id}`,
@@ -85,7 +85,7 @@ export const campaignService = {
    * Delete a campaign
    * @param id - Campaign ID
    */
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     try {
       await api.delete<ApiResponse<{}>>(
         `/campaigns/${id}`
@@ -100,7 +100,7 @@ export const campaignService = {
    * Get campaign statistics
    * @param id - Campaign ID
    */
-  getStats: async (id: number): Promise<{
+  getStats: async (id: string): Promise<{
     campaign: Pick<Campaign, 'id' | 'name' | 'status' | 'scheduledFor' | 'sentAt'>;
     stats: {
       totalRecipients: number;
@@ -147,7 +147,7 @@ export const campaignService = {
     }
   },
 
-  scheduleCampaign: async (id: number, scheduledFor: string): Promise<Campaign> => {
+  scheduleCampaign: async (id: string, scheduledFor: string): Promise<Campaign> => {
     const response = await api.post<ApiResponse<{ campaign: Campaign }>>(
       `/campaigns/${id}/schedule`,
       { scheduledFor }
@@ -155,21 +155,21 @@ export const campaignService = {
     return response.data.campaign;
   },
 
-  cancelSchedule: async (id: number): Promise<Campaign> => {
+  cancelSchedule: async (id: string): Promise<Campaign> => {
     const response = await api.post<ApiResponse<{ campaign: Campaign }>>(
       `/campaigns/${id}/cancel-schedule`
     );
     return response.data.campaign;
   },
 
-  sendNow: async (id: number): Promise<Campaign> => {
+  sendNow: async (id: string): Promise<Campaign> => {
     const response = await api.post<ApiResponse<{ campaign: Campaign }>>(
       `/campaigns/${id}/send-now`
     );
     return response.data.campaign;
   },
 
-  stopCampaign: async (id: number): Promise<Campaign> => {
+  stopCampaign: async (id: string): Promise<Campaign> => {
     const response = await api.post<ApiResponse<{ campaign: Campaign }>>(
       `/campaigns/${id}/stop`
     );

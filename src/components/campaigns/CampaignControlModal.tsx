@@ -55,8 +55,8 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
   // Form states
   const [name, setName] = useState(campaign.name);
   const [subject, setSubject] = useState(campaign.subject);
-  const [templateId, setTemplateId] = useState(campaign.templateId.toString());
-  const [contactListId, setContactListId] = useState(campaign.contactListId.toString());
+  const [templateId, setTemplateId] = useState(campaign.templateId); // Already a UUID string
+  const [contactListId, setContactListId] = useState(campaign.contactListId); // Already a UUID string
   const [scheduledFor, setScheduledFor] = useState<Date | undefined>(
     campaign.scheduledFor ? new Date(campaign.scheduledFor) : undefined
   );
@@ -88,12 +88,24 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
       newErrors.subject = "Subject line is required";
     }
     
-    if (!templateId) {
+    if (!templateId || templateId === "") {
       newErrors.templateId = "Template is required";
+    } else {
+      // Validate UUID format (basic check)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(templateId)) {
+        newErrors.templateId = "Invalid template selection";
+      }
     }
     
-    if (!contactListId) {
+    if (!contactListId || contactListId === "") {
       newErrors.contactListId = "Contact list is required";
+    } else {
+      // Validate UUID format (basic check)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(contactListId)) {
+        newErrors.contactListId = "Invalid contact list selection";
+      }
     }
     
     if (sendingMode === 'turtle') {
@@ -111,11 +123,12 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
       return;
     }
 
+    // Use UUIDs as strings - no conversion needed
     updateCampaign({
       name: name.trim(),
       subject: subject.trim(),
-      templateId: parseInt(templateId, 10),
-      contactListId: parseInt(contactListId, 10),
+      templateId: templateId, // Keep as UUID string
+      contactListId: contactListId, // Keep as UUID string
       sendingMode,
       emailsPerMinute: sendingMode === 'turtle' ? emailsPerMinute : undefined,
       maxConcurrentBatches: sendingMode === 'turtle' ? 1 : undefined,
@@ -354,7 +367,7 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
                       </SelectTrigger>
                       <SelectContent>
                         {templates?.map((template) => (
-                          <SelectItem key={template.id} value={template.id.toString()}>
+                          <SelectItem key={template.id} value={template.id}>
                             {template.name}
                           </SelectItem>
                         ))}
@@ -383,7 +396,7 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
                       </SelectTrigger>
                       <SelectContent>
                         {contactLists.map((list) => (
-                          <SelectItem key={list.id} value={list.id.toString()}>
+                          <SelectItem key={list.id} value={list.id}>
                             {list.name} ({list.count} contacts)
                           </SelectItem>
                         ))}

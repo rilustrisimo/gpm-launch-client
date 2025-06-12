@@ -42,15 +42,37 @@ const NewCampaignPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createCampaign(
-      {
-        name: form.name,
-        subject: form.subject,
-        contactListId: Number(form.contactListId),
-        scheduledFor: form.scheduledFor,
-        templateId: templateId ? Number(templateId) : undefined,
-      },
-      {
+    
+    // Validate and convert IDs
+    const parsedContactListId = parseInt(form.contactListId, 10);
+    const parsedTemplateId = templateId ? parseInt(templateId, 10) : undefined;
+    
+    if (isNaN(parsedContactListId) || parsedContactListId <= 0) {
+      toast.error("Please select a valid contact list");
+      return;
+    }
+    
+    if (templateId && (isNaN(parsedTemplateId!) || parsedTemplateId! <= 0)) {
+      toast.error("Please select a valid template");
+      return;
+    }
+    
+    const campaignData = {
+      name: form.name,
+      subject: form.subject,
+      contactListId: parsedContactListId,
+      scheduledFor: form.scheduledFor,
+      templateId: parsedTemplateId,
+    };
+    
+    // Debug log
+    console.log('NewCampaignPage creating campaign with data:', {
+      ...campaignData,
+      contactListId: typeof campaignData.contactListId,
+      templateId: typeof campaignData.templateId
+    });
+    
+    createCampaign(campaignData, {
         onSuccess: () => {
           toast.success("Campaign created successfully");
           navigate("/campaigns");
