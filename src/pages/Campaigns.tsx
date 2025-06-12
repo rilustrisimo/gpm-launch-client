@@ -16,7 +16,12 @@ const Campaigns = () => {
   const [activeTab, setActiveTab] = useState("all");
   
   // Fetch campaigns from API
-  const { data: campaigns, isLoading, isError } = useCampaigns();
+  const { data: campaigns, isLoading, isError, refetch } = useCampaigns();
+  
+  // Function to refresh campaigns
+  const handleCampaignUpdate = () => {
+    refetch();
+  };
   
   // Filter campaigns based on search term and active tab
   const filteredCampaigns = campaigns?.filter(campaign => {
@@ -112,7 +117,7 @@ const Campaigns = () => {
         // Show campaign list
         <div className="grid gap-6">
           {filteredCampaigns.map((campaign) => (
-            <CampaignCard key={campaign.id} campaign={campaign} />
+            <CampaignCard key={campaign.id} campaign={campaign} onCampaignUpdate={handleCampaignUpdate} />
           ))}
         </div>
       ) : (

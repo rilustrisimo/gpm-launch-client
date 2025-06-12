@@ -20,6 +20,7 @@ import { CalendarIcon, Loader2, MoreVertical, Edit, Trash2, Clock, AlertTriangle
 import { toast } from "sonner";
 import { useTemplates, useContactLists, useUpdateCampaign, useDeleteCampaign, useScheduleCampaign, useCancelSchedule, useSendCampaign, useStopCampaign } from "@/hooks";
 import { Campaign } from "@/lib/types";
+import { RatePresetButtons } from "./RatePresetButtons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +60,8 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
   const [scheduledFor, setScheduledFor] = useState<Date | undefined>(
     campaign.scheduledFor ? new Date(campaign.scheduledFor) : undefined
   );
+  const [sendingMode, setSendingMode] = useState<'normal' | 'turtle'>(campaign.sendingMode || 'normal');
+  const [emailsPerMinute, setEmailsPerMinute] = useState(campaign.emailsPerMinute || 30);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch templates and contact lists
@@ -93,6 +96,12 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
       newErrors.contactListId = "Contact list is required";
     }
     
+    if (sendingMode === 'turtle') {
+      if (!emailsPerMinute || emailsPerMinute < 1 || emailsPerMinute > 600) {
+        newErrors.emailsPerMinute = "Emails per minute must be between 1 and 600";
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -107,6 +116,9 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
       subject: subject.trim(),
       templateId: parseInt(templateId, 10),
       contactListId: parseInt(contactListId, 10),
+      sendingMode,
+      emailsPerMinute: sendingMode === 'turtle' ? emailsPerMinute : undefined,
+      maxConcurrentBatches: sendingMode === 'turtle' ? 1 : undefined,
     }, {
       onSuccess: () => {
         setEditMode(false);
@@ -382,6 +394,86 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
                     )}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-4 items-start gap-4">
+                  <Label className="text-right mt-2">
+                    Sending Mode
+                  </Label>
+                  <div className="col-span-3 space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="editNormalMode"
+                        name="editSendingMode"
+                        checked={sendingMode === 'normal'}
+                        onChange={() => setSendingMode('normal')}
+                        className="w-4 h-4 text-brand-highlight bg-gray-100 border-gray-300 focus:ring-brand-highlight"
+                      />
+                      <Label htmlFor="editNormalMode" className="text-sm font-normal">
+                        Normal Send (Fast bulk sending)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="editTurtleMode"
+                        name="editSendingMode"
+                        checked={sendingMode === 'turtle'}
+                        onChange={() => setSendingMode('turtle')}
+                        className="w-4 h-4 text-brand-highlight bg-gray-100 border-gray-300 focus:ring-brand-highlight"
+                      />
+                      <Label htmlFor="editTurtleMode" className="text-sm font-normal">
+                        Turtle Send (Rate-limited sending)
+                      </Label>
+                    </div>
+                    
+                    {/* Turtle Mode Configuration */}
+                    {sendingMode === 'turtle' && (
+                      <div className="ml-6 mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="space-y-4">
+                          {/* Rate Preset Buttons */}
+                          <RatePresetButtons
+                            currentRate={emailsPerMinute}
+                            onRateChange={setEmailsPerMinute}
+                            disabled={isUpdating}
+                          />
+                          
+                          {/* Custom Rate Slider */}
+                          <div>
+                            <Label htmlFor="editEmailsPerMinute" className="text-sm font-medium">
+                              Custom Rate: {emailsPerMinute} emails/minute
+                            </Label>
+                            <input
+                              type="range"
+                              id="editEmailsPerMinute"
+                              min="1"
+                              max="600"
+                              value={emailsPerMinute}
+                              onChange={(e) => setEmailsPerMinute(parseInt(e.target.value))}
+                              className="w-full mt-2"
+                            />
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                              <span>1/min (Slowest)</span>
+                              <span>600/min (Fastest)</span>
+                            </div>
+                            {errors.emailsPerMinute && (
+                              <p className="text-sm text-red-500 mt-1">{errors.emailsPerMinute}</p>
+                            )}
+                          </div>
+                          
+                          {/* Rate Information */}
+                          <div className="text-sm text-blue-700">
+                            <p><strong>Rate:</strong> {emailsPerMinute} emails/minute</p>
+                            <p><strong>Delay:</strong> {((60 * 1000) / emailsPerMinute / 1000).toFixed(1)}s between emails</p>
+                            {contactListId && (
+                              <p><strong>Est. Time:</strong> ~{Math.ceil((contactLists.find(list => list.id.toString() === contactListId)?.count || 0) / emailsPerMinute)} minutes</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -401,6 +493,17 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
                   <Label className="text-right">Contact List</Label>
                   <div className="col-span-3">
                     {campaign.contactList?.name} ({campaign.totalRecipients} contacts)
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Sending Mode</Label>
+                  <div className="col-span-3 flex items-center gap-2">
+                    <span className="capitalize">{campaign.sendingMode || 'normal'}</span>
+                    {campaign.sendingMode === 'turtle' && (
+                      <span className="text-sm text-blue-600">
+                        ({campaign.emailsPerMinute}/min)
+                      </span>
+                    )}
                   </div>
                 </div>
                 {campaign.scheduledFor && (

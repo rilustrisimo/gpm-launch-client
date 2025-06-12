@@ -24,6 +24,10 @@ export interface Campaign {
   sentAt: string | null;
   openRate: number;
   clickRate: number;
+  // Turtle send fields
+  sendingMode?: 'normal' | 'turtle';
+  emailsPerMinute?: number;
+  maxConcurrentBatches?: number;
   template?: Template;
   contactList?: ContactList;
   createdAt: string;

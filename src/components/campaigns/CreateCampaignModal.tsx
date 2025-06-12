@@ -21,6 +21,7 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTemplates, useContactLists, useCreateCampaign } from "@/hooks";
 import { Campaign } from "@/lib/types";
+import { RatePresetButtons } from "./RatePresetButtons";
 
 export function CreateCampaignModal() {
   const [open, setOpen] = useState(false);
@@ -30,6 +31,8 @@ export function CreateCampaignModal() {
   const [templateId, setTemplateId] = useState("");
   const [scheduledFor, setScheduledFor] = useState<Date | undefined>(undefined);
   const [sendNow, setSendNow] = useState(true);
+  const [sendingMode, setSendingMode] = useState<'normal' | 'turtle'>('normal');
+  const [emailsPerMinute, setEmailsPerMinute] = useState(30);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch templates and contact lists
@@ -63,6 +66,12 @@ export function CreateCampaignModal() {
       newErrors.scheduledFor = "Please select a date for scheduling";
     }
     
+    if (sendingMode === 'turtle') {
+      if (!emailsPerMinute || emailsPerMinute < 1 || emailsPerMinute > 600) {
+        newErrors.emailsPerMinute = "Emails per minute must be between 1 and 600";
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -77,8 +86,11 @@ export function CreateCampaignModal() {
     const newCampaign: Partial<Campaign> = {
       name: campaignName.trim(),
       subject: subject.trim(),
-      templateId,
-      contactListId,
+      templateId: parseInt(templateId, 10),
+      contactListId: parseInt(contactListId, 10),
+      sendingMode,
+      emailsPerMinute: sendingMode === 'turtle' ? emailsPerMinute : undefined,
+      maxConcurrentBatches: sendingMode === 'turtle' ? 1 : undefined,
       scheduledFor: sendNow ? undefined : scheduledFor?.toISOString()
     };
     
@@ -114,6 +126,8 @@ export function CreateCampaignModal() {
     setTemplateId("");
     setScheduledFor(undefined);
     setSendNow(true);
+    setSendingMode('normal');
+    setEmailsPerMinute(30);
     setErrors({});
   };
 
@@ -242,6 +256,85 @@ export function CreateCampaignModal() {
                 </Select>
                 {errors.templateId && (
                   <p className="text-sm text-red-500 mt-1">{errors.templateId}</p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right mt-2">
+                Sending Mode
+              </Label>
+              <div className="col-span-3 space-y-3">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="normalMode"
+                    name="sendingMode"
+                    checked={sendingMode === 'normal'}
+                    onChange={() => setSendingMode('normal')}
+                    className="w-4 h-4 text-brand-highlight bg-gray-100 border-gray-300 focus:ring-brand-highlight"
+                  />
+                  <Label htmlFor="normalMode" className="text-sm font-normal">
+                    Normal Send (Fast bulk sending)
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    id="turtleMode"
+                    name="sendingMode"
+                    checked={sendingMode === 'turtle'}
+                    onChange={() => setSendingMode('turtle')}
+                    className="w-4 h-4 text-brand-highlight bg-gray-100 border-gray-300 focus:ring-brand-highlight"
+                  />
+                  <Label htmlFor="turtleMode" className="text-sm font-normal">
+                    Turtle Send (Rate-limited sending)
+                  </Label>
+                </div>
+                
+                {/* Turtle Mode Configuration */}
+                {sendingMode === 'turtle' && (
+                  <div className="ml-6 mt-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="space-y-4">
+                      {/* Rate Preset Buttons */}
+                      <RatePresetButtons
+                        currentRate={emailsPerMinute}
+                        onRateChange={setEmailsPerMinute}
+                        disabled={isCreating}
+                      />
+                      
+                      {/* Custom Rate Slider */}
+                      <div>
+                        <Label htmlFor="emailsPerMinute" className="text-sm font-medium">
+                          Custom Rate: {emailsPerMinute} emails/minute
+                        </Label>
+                        <input
+                          type="range"
+                          id="emailsPerMinute"
+                          min="1"
+                          max="600"
+                          value={emailsPerMinute}
+                          onChange={(e) => setEmailsPerMinute(parseInt(e.target.value))}
+                          className="w-full mt-2"
+                        />
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>1/min (Slowest)</span>
+                          <span>600/min (Fastest)</span>
+                        </div>
+                        {errors.emailsPerMinute && (
+                          <p className="text-sm text-red-500 mt-1">{errors.emailsPerMinute}</p>
+                        )}
+                      </div>
+                      
+                      {/* Rate Information */}
+                      <div className="text-sm text-blue-700">
+                        <p><strong>Rate:</strong> {emailsPerMinute} emails/minute</p>
+                        <p><strong>Delay:</strong> {((60 * 1000) / emailsPerMinute / 1000).toFixed(1)}s between emails</p>
+                        {contactListId && (
+                          <p><strong>Est. Time:</strong> ~{Math.ceil((contactLists.find(list => list.id.toString() === contactListId)?.count || 0) / emailsPerMinute)} minutes</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
