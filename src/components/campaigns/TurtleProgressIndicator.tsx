@@ -34,6 +34,14 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
   const { mutate: stopCampaign, isPending: isStopping } = useStopCampaign();
   const { mutate: resumeCampaign, isPending: isResuming } = useSendCampaign();
 
+  // Debug: Log the statsData to console to see what we're actually getting
+  useEffect(() => {
+    if (statsData) {
+      console.log('TurtleProgressIndicator - statsData:', statsData);
+      console.log('TurtleProgressIndicator - stats.delivered:', statsData.stats?.delivered);
+    }
+  }, [statsData]);
+
   // Enhanced polling logic with adaptive intervals and error handling
   useEffect(() => {
     let intervalId: NodeJS.Timeout;

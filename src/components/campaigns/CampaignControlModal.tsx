@@ -479,7 +479,7 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
                             <p><strong>Rate:</strong> {emailsPerMinute} emails/minute</p>
                             <p><strong>Delay:</strong> {((60 * 1000) / emailsPerMinute / 1000).toFixed(1)}s between emails</p>
                             {contactListId && (
-                              <p><strong>Est. Time:</strong> ~{Math.ceil((contactLists.find(list => list.id.toString() === contactListId)?.count || 0) / emailsPerMinute)} minutes</p>
+                              <p><strong>Est. Time:</strong> ~{Math.ceil((contactLists.find(list => list.id === contactListId)?.count || 0) / emailsPerMinute)} minutes</p>
                             )}
                           </div>
                         </div>

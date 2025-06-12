@@ -135,6 +135,9 @@ export const campaignService = {
       if (!response.data || !response.data.success) {
         throw new Error('Failed to fetch campaign statistics');
       }
+
+      // Debug: Log the raw API response
+      console.log(`Campaign ${id} stats response:`, response.data);
       
       return {
         campaign: response.data.campaign,
