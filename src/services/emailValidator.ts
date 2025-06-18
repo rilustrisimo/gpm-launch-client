@@ -308,7 +308,7 @@ export class EmailValidator {
     }>,
     onProgress?: (progress: number) => void
   ): Promise<ContactValidationResult[]> {
-    const batchSize = 100;
+    const batchSize = 50;
     const results: ContactValidationResult[] = [];
     let processedCount = 0;
     

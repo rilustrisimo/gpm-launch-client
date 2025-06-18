@@ -129,7 +129,7 @@ export const contactService = {
       failureReasons: Record<string, number>;
     };
   }> => {
-    const batchSize = 500; // Increase batch size to 500
+    const batchSize = 50; // Increase batch size to 50
     const contacts = data.contacts;
     const totalContacts = contacts.length;
     let importedCount = 0;
