@@ -183,7 +183,7 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
   
   // Calculate progress from actual database records for accuracy
   let actualStats = null;
-  if (recipients && Array.isArray(recipients)) {
+  if (recipients && Array.isArray(recipients) && recipients.length > 0) {
     actualStats = {
       totalRecipients: recipients.length,
       sent: recipients.filter(r => r.sent).length,
@@ -196,10 +196,27 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
     };
     
     console.log('TurtleProgressIndicator - Using actual DB records for stats:', actualStats);
+  } else {
+    console.log('TurtleProgressIndicator - No database records available, using computed stats from API');
   }
   
-  // Use actual stats if available, otherwise fall back to API computed stats
-  const effectiveStats = actualStats || stats;
+  // Use actual stats if available and non-empty, otherwise fall back to API computed stats
+  // Special case: if computed stats show completion but DB records are empty, use computed stats
+  let effectiveStats = stats; // Default to computed stats
+  
+  if (actualStats && actualStats.totalRecipients > 0) {
+    // Use database records when we have actual data
+    effectiveStats = actualStats;
+    console.log('TurtleProgressIndicator - Using database records (non-empty)');
+  } else if (stats && stats.totalRecipients > 0) {
+    // Use computed stats when database records are empty but computed stats have data
+    effectiveStats = stats;
+    console.log('TurtleProgressIndicator - Using computed stats (database records empty)');
+  } else {
+    // Fallback case
+    effectiveStats = actualStats || stats;
+    console.log('TurtleProgressIndicator - Using fallback stats');
+  }
   
   // Calculate progress with proper NaN handling
   let progressPercentage = 0;
@@ -214,12 +231,14 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
   const estimatedTimeMinutes = campaign.emailsPerMinute && remainingEmails > 0 ? Math.ceil(remainingEmails / campaign.emailsPerMinute) : 0;
 
   // Check for discrepancies between computed stats and actual records
-  const hasDiscrepancy = actualStats && stats && (
-    actualStats.sent !== stats.sent || 
-    actualStats.delivered !== stats.delivered ||
-    actualStats.opened !== stats.opened ||
-    actualStats.clicked !== stats.clicked
-  );
+  // Only check when we have meaningful data from both sources
+  const hasDiscrepancy = actualStats && stats && 
+    actualStats.totalRecipients > 0 && stats.totalRecipients > 0 && (
+      actualStats.sent !== stats.sent || 
+      actualStats.delivered !== stats.delivered ||
+      actualStats.opened !== stats.opened ||
+      actualStats.clicked !== stats.clicked
+    );
 
   if (hasDiscrepancy) {
     console.warn('TurtleProgressIndicator - Discrepancy detected between computed stats and database records:', {
@@ -229,6 +248,13 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
   }
 
   const getStatusColor = (status: string) => {
+    // If backend reports 100% progress, treat as completed regardless of status
+    const isComplete = statsData?.progress && statsData.progress >= 100;
+    
+    if (isComplete) {
+      return 'bg-green-100 text-green-800';
+    }
+    
     switch (status) {
       case 'sending':
         return 'bg-blue-100 text-blue-800';
@@ -262,7 +288,7 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
             {pollingError && <AlertCircle className="h-4 w-4 text-red-500" />}
           </CardTitle>
           <Badge className={cn('text-xs', getStatusColor(campaign.status))}>
-            {campaign.status}
+            {statsData?.progress && statsData.progress >= 100 ? 'completed' : campaign.status}
           </Badge>
         </div>
         
@@ -286,7 +312,15 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
         {hasDiscrepancy && (
           <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700 flex items-center gap-2">
             <AlertCircle className="h-3 w-3" />
-            <span>Using database records for accuracy (computed stats may be stale)</span>
+            <span>Data mismatch detected - using most reliable source</span>
+          </div>
+        )}
+        
+        {/* Show when using computed stats due to empty database records */}
+        {!actualStats && stats && stats.totalRecipients > 0 && (
+          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 flex items-center gap-2">
+            <AlertCircle className="h-3 w-3" />
+            <span>Using computed statistics (campaign records may be archived)</span>
           </div>
         )}
       </CardHeader>
@@ -334,7 +368,7 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
           <div className="text-center p-2 bg-white rounded border">
             <p className="text-gray-500 text-xs">Est. Time</p>
             <p className="font-semibold text-purple-600 text-sm sm:text-base">
-              {campaign.status === 'completed' ? 'Done' : formatTime(estimatedTimeMinutes)}
+              {(statsData?.progress && statsData.progress >= 100) || campaign.status === 'completed' ? 'Done' : formatTime(estimatedTimeMinutes)}
             </p>
           </div>
         </div>
