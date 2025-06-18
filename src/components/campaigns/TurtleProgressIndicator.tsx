@@ -39,6 +39,25 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
     if (statsData) {
       console.log('TurtleProgressIndicator - statsData:', statsData);
       console.log('TurtleProgressIndicator - stats.delivered:', statsData.stats?.delivered);
+      console.log('TurtleProgressIndicator - stats.sent:', statsData.stats?.sent);
+      console.log('TurtleProgressIndicator - recipients count:', statsData.recipients?.length);
+      
+      // Debug: Count actual records from recipients array
+      if (statsData.recipients && Array.isArray(statsData.recipients)) {
+        const actualSent = statsData.recipients.filter(r => r.sent).length;
+        const actualDelivered = statsData.recipients.filter(r => r.delivered).length;
+        const actualOpened = statsData.recipients.filter(r => r.opened).length;
+        const actualClicked = statsData.recipients.filter(r => r.clicked).length;
+        const actualBounced = statsData.recipients.filter(r => r.bounced).length;
+        
+        console.log('TurtleProgressIndicator - Actual counts from DB records:', {
+          sent: actualSent,
+          delivered: actualDelivered,
+          opened: actualOpened,
+          clicked: actualClicked,
+          bounced: actualBounced
+        });
+      }
     }
   }, [statsData]);
 
@@ -135,10 +154,47 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
     return null;
   }
 
+  // Use actual database records instead of computed stats when available
   const stats = statsData?.stats;
-  const progressPercentage = stats ? Math.round((stats.sent / stats.totalRecipients) * 100) : 0;
-  const remainingEmails = stats ? stats.totalRecipients - stats.sent : campaign.totalRecipients;
+  const recipients = statsData?.recipients;
+  
+  // Calculate progress from actual database records for accuracy
+  let actualStats = null;
+  if (recipients && Array.isArray(recipients)) {
+    actualStats = {
+      totalRecipients: recipients.length,
+      sent: recipients.filter(r => r.sent).length,
+      delivered: recipients.filter(r => r.delivered).length,
+      opened: recipients.filter(r => r.opened).length,
+      clicked: recipients.filter(r => r.clicked).length,
+      bounced: recipients.filter(r => r.bounced).length,
+      openRate: recipients.length > 0 ? (recipients.filter(r => r.opened).length / recipients.length) * 100 : 0,
+      clickRate: recipients.length > 0 ? (recipients.filter(r => r.clicked).length / recipients.length) * 100 : 0,
+    };
+    
+    console.log('TurtleProgressIndicator - Using actual DB records for stats:', actualStats);
+  }
+  
+  // Use actual stats if available, otherwise fall back to API computed stats
+  const effectiveStats = actualStats || stats;
+  const progressPercentage = effectiveStats ? Math.round((effectiveStats.sent / effectiveStats.totalRecipients) * 100) : 0;
+  const remainingEmails = effectiveStats ? effectiveStats.totalRecipients - effectiveStats.sent : campaign.totalRecipients;
   const estimatedTimeMinutes = campaign.emailsPerMinute ? Math.ceil(remainingEmails / campaign.emailsPerMinute) : 0;
+
+  // Check for discrepancies between computed stats and actual records
+  const hasDiscrepancy = actualStats && stats && (
+    actualStats.sent !== stats.sent || 
+    actualStats.delivered !== stats.delivered ||
+    actualStats.opened !== stats.opened ||
+    actualStats.clicked !== stats.clicked
+  );
+
+  if (hasDiscrepancy) {
+    console.warn('TurtleProgressIndicator - Discrepancy detected between computed stats and database records:', {
+      computed: stats,
+      actual: actualStats
+    });
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -193,6 +249,14 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
             </Button>
           </div>
         )}
+        
+        {/* Data source indicator */}
+        {hasDiscrepancy && (
+          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700 flex items-center gap-2">
+            <AlertCircle className="h-3 w-3" />
+            <span>Using database records for accuracy (computed stats may be stale)</span>
+          </div>
+        )}
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -200,7 +264,7 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="font-medium">
-              {stats?.sent || 0} of {stats?.totalRecipients || campaign.totalRecipients} emails sent
+              {effectiveStats?.sent || 0} of {effectiveStats?.totalRecipients || campaign.totalRecipients} emails sent
             </span>
             <span className="text-blue-600 font-semibold">
               {progressPercentage}%
@@ -224,7 +288,7 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
           <div className="text-center p-2 bg-white rounded border">
             <p className="text-gray-500 text-xs">Delivered</p>
             <p className="font-semibold text-green-600 text-sm sm:text-base">
-              {stats?.delivered || 0}
+              {effectiveStats?.delivered || 0}
             </p>
           </div>
           
@@ -244,24 +308,24 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
         </div>
 
         {/* Additional Stats */}
-        {stats && (
+        {effectiveStats && (
           <div className="grid grid-cols-2 gap-3 text-sm border-t pt-3">
             <div className="flex justify-between">
               <span className="text-gray-600">Opened:</span>
               <span className="font-medium text-green-600">
-                {stats.opened} ({stats.openRate.toFixed(1)}%)
+                {effectiveStats.opened} ({effectiveStats.openRate.toFixed(1)}%)
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Clicked:</span>
               <span className="font-medium text-blue-600">
-                {stats.clicked} ({stats.clickRate.toFixed(1)}%)
+                {effectiveStats.clicked} ({effectiveStats.clickRate.toFixed(1)}%)
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Bounced:</span>
               <span className="font-medium text-red-600">
-                {stats.bounced}
+                {effectiveStats.bounced}
               </span>
             </div>
             <div className="flex justify-between">
