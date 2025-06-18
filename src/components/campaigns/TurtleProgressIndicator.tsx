@@ -65,18 +65,33 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
-    if (isPolling && (campaign.status === 'sending' || campaign.status === 'processing')) {
+    // Only poll if campaign is actively sending/processing AND not complete
+    const shouldContinuePolling = isPolling && 
+      (campaign.status === 'sending' || campaign.status === 'processing') &&
+      (!statsData?.progress || statsData.progress < 100);
+
+    if (shouldContinuePolling) {
       // Adaptive polling: slower interval if there have been errors
       const pollingInterval = errorCount > 3 ? 15000 : (errorCount > 1 ? 10000 : 5000);
       
+      console.log(`Starting polling for campaign ${campaign.id} with ${pollingInterval}ms interval`);
+      
       intervalId = setInterval(async () => {
         try {
-          await refetchStats();
+          const result = await refetchStats();
+          
           // Reset error count on successful fetch
           if (errorCount > 0) {
             setErrorCount(0);
             setPollingError(null);
           }
+          
+          // Check if campaign is complete based on backend progress
+          if (result.data?.progress && result.data.progress >= 100) {
+            console.log(`Campaign ${campaign.id} complete (progress: ${result.data.progress}%), stopping polling`);
+            setIsPolling(false);
+          }
+          
         } catch (err: any) {
           console.error('Polling error:', err);
           const newErrorCount = errorCount + 1;
@@ -90,6 +105,8 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
           }
         }
       }, pollingInterval);
+    } else if (statsData?.progress && statsData.progress >= 100) {
+      console.log(`Campaign ${campaign.id} is complete (progress: ${statsData.progress}%), not polling`);
     }
 
     return () => {
@@ -97,19 +114,25 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
         clearInterval(intervalId);
       }
     };
-  }, [isPolling, campaign.status, refetchStats, errorCount]);
+  }, [isPolling, campaign.status, campaign.id, refetchStats, errorCount, statsData?.progress]);
 
-  // Update polling state when campaign status changes
+  // Update polling state when campaign status changes or progress reaches 100%
   useEffect(() => {
-    const shouldPoll = campaign.status === 'sending' || campaign.status === 'processing';
-    setIsPolling(shouldPoll);
+    const isActiveStatus = campaign.status === 'sending' || campaign.status === 'processing';
+    const isComplete = statsData?.progress && statsData.progress >= 100;
+    const shouldPoll = isActiveStatus && !isComplete;
     
-    // Reset error states when campaign status changes
-    if (shouldPoll) {
+    // Only change polling state if it's different from current state
+    if (shouldPoll && !isPolling) {
+      console.log(`Starting polling for campaign ${campaign.id} - Status: ${campaign.status}, Progress: ${statsData?.progress}%`);
+      setIsPolling(true);
       setErrorCount(0);
       setPollingError(null);
+    } else if (!shouldPoll && isPolling) {
+      console.log(`Stopping polling for campaign ${campaign.id} - Status: ${campaign.status}, Progress: ${statsData?.progress}%`);
+      setIsPolling(false);
     }
-  }, [campaign.status]);
+  }, [campaign.status, campaign.id, statsData?.progress, isPolling]);
 
   const handleStop = () => {
     stopCampaign(campaign.id, {
@@ -177,9 +200,18 @@ export const TurtleProgressIndicator: React.FC<TurtleProgressIndicatorProps> = (
   
   // Use actual stats if available, otherwise fall back to API computed stats
   const effectiveStats = actualStats || stats;
-  const progressPercentage = effectiveStats ? Math.round((effectiveStats.sent / effectiveStats.totalRecipients) * 100) : 0;
+  
+  // Calculate progress with proper NaN handling
+  let progressPercentage = 0;
+  if (effectiveStats && effectiveStats.totalRecipients > 0) {
+    progressPercentage = Math.round((effectiveStats.sent / effectiveStats.totalRecipients) * 100);
+  }
+  
+  // Ensure progress is within valid range
+  progressPercentage = Math.min(100, Math.max(0, progressPercentage || 0));
+  
   const remainingEmails = effectiveStats ? effectiveStats.totalRecipients - effectiveStats.sent : campaign.totalRecipients;
-  const estimatedTimeMinutes = campaign.emailsPerMinute ? Math.ceil(remainingEmails / campaign.emailsPerMinute) : 0;
+  const estimatedTimeMinutes = campaign.emailsPerMinute && remainingEmails > 0 ? Math.ceil(remainingEmails / campaign.emailsPerMinute) : 0;
 
   // Check for discrepancies between computed stats and actual records
   const hasDiscrepancy = actualStats && stats && (

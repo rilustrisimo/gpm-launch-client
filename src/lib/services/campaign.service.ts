@@ -112,6 +112,7 @@ export const campaignService = {
       openRate: number;
       clickRate: number;
     };
+    progress?: number; // Progress percentage from backend
     recipients: CampaignStat[];
   }> => {
     try {
@@ -127,6 +128,7 @@ export const campaignService = {
           openRate: number;
           clickRate: number;
         };
+        progress?: number; // Progress percentage from backend
         recipients: CampaignStat[];
       }>>(
         `/campaigns/${id}/stats`
@@ -142,6 +144,7 @@ export const campaignService = {
       return {
         campaign: response.data.campaign,
         stats: response.data.stats,
+        progress: response.data.progress, // Include progress from backend
         recipients: response.data.recipients
       };
     } catch (error) {
