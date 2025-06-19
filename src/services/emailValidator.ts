@@ -18,6 +18,28 @@ export interface ContactValidationResult extends EmailValidationResult {
 
 export class EmailValidator {
   /**
+   * Clean email address by removing quotes, trimming whitespace, and normalizing
+   */
+  private static cleanEmail(email: string): string {
+    if (!email) return '';
+    
+    // Trim whitespace
+    let cleaned = email.trim();
+    
+    // Remove surrounding quotes (single or double)
+    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+      cleaned = cleaned.slice(1, -1);
+    }
+    
+    // Remove any remaining quotes at the beginning or end
+    cleaned = cleaned.replace(/^["']+|["']+$/g, '');
+    
+    // Final trim and lowercase
+    return cleaned.trim().toLowerCase();
+  }
+
+  /**
    * Validate email syntax using regex
    */
   private static validateEmailSyntax(email: string): boolean {
@@ -103,8 +125,11 @@ export class EmailValidator {
    */
   public static async validateEmail(email: string): Promise<EmailValidationResult> {
     try {
+      // Clean the email first
+      const cleanedEmail = this.cleanEmail(email);
+      
       // Step 1: Basic syntax validation
-      if (!this.validateEmailSyntax(email)) {
+      if (!this.validateEmailSyntax(cleanedEmail)) {
         return {
           isValid: false,
           status: 'Invalid',
@@ -112,10 +137,10 @@ export class EmailValidator {
         };
       }
 
-      const [, domain] = email.split('@');
+      const [, domain] = cleanedEmail.split('@');
 
       // Step 2: Check for test emails
-      if (this.isTestEmail(email)) {
+      if (this.isTestEmail(cleanedEmail)) {
         return {
           isValid: false,
           status: 'Invalid',
@@ -133,7 +158,7 @@ export class EmailValidator {
       }
 
       // Step 4: Check for common typos
-      const typoCheck = this.checkCommonTypos(email);
+      const typoCheck = this.checkCommonTypos(cleanedEmail);
       if (typoCheck.hasTypo) {
         return {
           isValid: false,
@@ -143,7 +168,7 @@ export class EmailValidator {
       }
 
       // Step 5: Check for duplicates
-      const isDuplicate = await this.checkDuplicate(email);
+      const isDuplicate = await this.checkDuplicate(cleanedEmail);
       if (isDuplicate) {
         return {
           isValid: false,
@@ -181,8 +206,11 @@ export class EmailValidator {
    */
   public static async validateEmailImport(email: string): Promise<EmailValidationResult> {
     try {
+      // Clean the email first
+      const cleanedEmail = this.cleanEmail(email);
+      
       // Step 1: Basic syntax validation
-      if (!this.validateEmailSyntax(email)) {
+      if (!this.validateEmailSyntax(cleanedEmail)) {
         return {
           isValid: false,
           status: 'Invalid',
@@ -190,10 +218,10 @@ export class EmailValidator {
         };
       }
 
-      const [, domain] = email.split('@');
+      const [, domain] = cleanedEmail.split('@');
 
       // Step 2: Check for test emails
-      if (this.isTestEmail(email)) {
+      if (this.isTestEmail(cleanedEmail)) {
         return {
           isValid: false,
           status: 'Invalid',
@@ -211,7 +239,7 @@ export class EmailValidator {
       }
 
       // Step 4: Check for common typos
-      const typoCheck = this.checkCommonTypos(email);
+      const typoCheck = this.checkCommonTypos(cleanedEmail);
       if (typoCheck.hasTypo) {
         return {
           isValid: false,
@@ -245,14 +273,18 @@ export class EmailValidator {
     phone?: string;
     customFields?: Record<string, any>;
   }): Promise<ContactValidationResult> {
+    // Clean the email first
+    const cleanedEmail = this.cleanEmail(contact.email);
+    const cleanedContact = { ...contact, email: cleanedEmail };
+    
     // First validate the email
-    const emailValidation = await this.validateEmail(contact.email);
+    const emailValidation = await this.validateEmail(cleanedEmail);
 
     // If email is invalid, return early
     if (!emailValidation.isValid) {
       return {
         ...emailValidation,
-        ...contact
+        ...cleanedContact
       };
     }
 
@@ -261,7 +293,7 @@ export class EmailValidator {
 
     return {
       ...emailValidation,
-      ...contact
+      ...cleanedContact
     };
   }
 
@@ -275,14 +307,18 @@ export class EmailValidator {
       phone?: string;
       customFields?: Record<string, any>;
     }): Promise<ContactValidationResult> {
+      // Clean the email first
+      const cleanedEmail = this.cleanEmail(contact.email);
+      const cleanedContact = { ...contact, email: cleanedEmail };
+      
       // First validate the email
-      const emailValidation = await this.validateEmailImport(contact.email);
+      const emailValidation = await this.validateEmailImport(cleanedEmail);
   
       // If email is invalid, return early
       if (!emailValidation.isValid) {
         return {
           ...emailValidation,
-          ...contact
+          ...cleanedContact
         };
       }
   
@@ -291,7 +327,7 @@ export class EmailValidator {
   
       return {
         ...emailValidation,
-        ...contact
+        ...cleanedContact
       };
     }
 

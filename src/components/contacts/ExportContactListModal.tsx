@@ -65,7 +65,14 @@ export const ExportContactListModal = ({
             contact.company || "",
             contact.status || "",
             contact.lastEngagement ? new Date(contact.lastEngagement).toLocaleDateString() : "",
-          ].map(field => `"${field.replace(/"/g, '""')}"`).join(","))
+          ].map(field => {
+            // Only wrap in quotes if the field contains commas, quotes, or newlines
+            const needsQuotes = field.includes(',') || field.includes('"') || field.includes('\n') || field.includes('\r');
+            if (needsQuotes) {
+              return `"${field.replace(/"/g, '""')}"`;
+            }
+            return field;
+          }).join(","))
         ].join("\n");
 
         // Create blob for this CSV file

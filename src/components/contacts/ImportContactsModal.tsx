@@ -89,37 +89,112 @@ export function ImportContactsModal({ listId }: ImportContactsModalProps) {
     const allContacts: CreateContactDto[] = [];
     let headers: string[] = [];
 
+    // Helper function to parse CSV line properly handling quoted fields
+    const parseCsvLine = (line: string): string[] => {
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            // Escaped quote
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // End of field
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      // Add last field
+      values.push(current.trim());
+      return values;
+    };
+
+    // Helper function to clean field values
+    const cleanField = (value: string): string => {
+      if (!value) return '';
+      
+      // Trim whitespace
+      let cleaned = value.trim();
+      
+      // Remove surrounding quotes (single or double)
+      if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+          (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+        cleaned = cleaned.slice(1, -1);
+      }
+      
+      // Remove any remaining quotes at the beginning or end
+      cleaned = cleaned.replace(/^["']+|["']+$/g, '');
+      
+      // Final trim
+      return cleaned.trim();
+    };
+
+    // Helper function to clean email specifically
+    const cleanEmail = (email: string): string => {
+      const cleaned = cleanField(email);
+      // Additional email-specific cleaning
+      return cleaned.toLowerCase().replace(/\s+/g, '');
+    };
+
     for (const file of files) {
       const text = await file.text();
-      const lines = text.split("\n");
+      const lines = text.split(/\r?\n/); // Handle both \n and \r\n line endings
       
       if (lines.length === 0) continue;
       
       // Get headers from first file only
       if (headers.length === 0) {
-        headers = hasHeaders ? lines[0].split(",").map(h => h.trim()) : ["email", "firstname", "lastname", "phone"];
+        if (hasHeaders) {
+          headers = parseCsvLine(lines[0]).map(h => cleanField(h).toLowerCase());
+        } else {
+          headers = ["email", "firstname", "lastname", "phone"];
+        }
       }
       
-      const emailIndex = headers.findIndex(h => h.toLowerCase() === "email");
-      const firstNameIndex = headers.findIndex(h => h.toLowerCase() === "firstname" || h.toLowerCase() === "first_name" || h.toLowerCase() === "first name");
-      const lastNameIndex = headers.findIndex(h => h.toLowerCase() === "lastname" || h.toLowerCase() === "last_name" || h.toLowerCase() === "last name");
-      const phoneIndex = headers.findIndex(h => h.toLowerCase() === "phone" || h.toLowerCase() === "phone_number" || h.toLowerCase() === "phone number");
+      const emailIndex = headers.findIndex(h => h === "email");
+      const firstNameIndex = headers.findIndex(h => h === "firstname" || h === "first_name" || h === "first name");
+      const lastNameIndex = headers.findIndex(h => h === "lastname" || h === "last_name" || h === "last name");
+      const phoneIndex = headers.findIndex(h => h === "phone" || h === "phone_number" || h === "phone number");
       
       const dataStartLine = hasHeaders ? 1 : 0;
       
       const fileContacts = lines.slice(dataStartLine)
         .filter(line => line.trim() !== "")
         .map(line => {
-          const values = line.split(",").map(v => v.trim());
-          return {
-            email: emailIndex >= 0 && emailIndex < values.length ? values[emailIndex] : "",
-            firstName: firstNameIndex >= 0 && firstNameIndex < values.length ? values[firstNameIndex] : "",
-            lastName: lastNameIndex >= 0 && lastNameIndex < values.length ? values[lastNameIndex] : "",
-            phone: phoneIndex >= 0 && phoneIndex < values.length ? values[phoneIndex] : "",
-            status: "active" as const
+          const values = parseCsvLine(line);
+          const email = emailIndex >= 0 && emailIndex < values.length ? cleanEmail(values[emailIndex]) : "";
+          
+          // Skip if no valid email
+          if (!email || !email.includes('@')) return null;
+          
+          const phoneValue = phoneIndex >= 0 && phoneIndex < values.length ? cleanField(values[phoneIndex]) : "";
+          
+          const contactData: CreateContactDto = {
+            email,
+            firstName: firstNameIndex >= 0 && firstNameIndex < values.length ? cleanField(values[firstNameIndex]) : "",
+            lastName: lastNameIndex >= 0 && lastNameIndex < values.length ? cleanField(values[lastNameIndex]) : "",
+            status: "active"
           };
+          
+          if (phoneValue) {
+            contactData.phone = phoneValue;
+          }
+          
+          return contactData;
         })
-        .filter(contact => contact.email);
+        .filter(contact => contact !== null);
       
       allContacts.push(...fileContacts);
     }
