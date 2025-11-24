@@ -180,5 +180,22 @@ export const campaignService = {
       `/campaigns/${id}/stop`
     );
     return response.data.campaign;
+  },
+
+  /**
+   * Get verified email identities for sender configuration
+   */
+  getVerifiedIdentities: async (): Promise<string[]> => {
+    try {
+      const response = await api.get<ApiResponse<{ identities: string[] }>>(
+        '/campaigns/verified-identities'
+      );
+      
+      return response.data.identities || ['support@send.gravitypointmedia.com'];
+    } catch (error) {
+      console.error('Error fetching verified email identities:', error);
+      // Return fallback email if API fails
+      return ['support@send.gravitypointmedia.com'];
+    }
   }
-}; 
+};

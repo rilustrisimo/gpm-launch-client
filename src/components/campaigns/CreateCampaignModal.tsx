@@ -19,9 +19,10 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useTemplates, useContactLists, useCreateCampaign } from "@/hooks";
+import { useTemplates, useContactLists, useCreateCampaign, useVerifiedIdentities } from "@/hooks";
 import { Campaign } from "@/lib/types";
 import { RatePresetButtons } from "./RatePresetButtons";
+import { campaignService } from "@/lib/services/campaign.service";
 
 export function CreateCampaignModal() {
   const [open, setOpen] = useState(false);
@@ -33,11 +34,16 @@ export function CreateCampaignModal() {
   const [sendNow, setSendNow] = useState(true);
   const [sendingMode, setSendingMode] = useState<'normal' | 'turtle'>('normal');
   const [emailsPerMinute, setEmailsPerMinute] = useState(30);
+  // Sender fields
+  const [fromName, setFromName] = useState("Gravity Point Media");
+  const [fromEmail, setFromEmail] = useState("support@send.gravitypointmedia.com");
+  const [replyToEmail, setReplyToEmail] = useState("support@gravitypointmedia.com");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch templates and contact lists
   const { data: templates, isLoading: templatesLoading } = useTemplates();
   const { data: contactListsData, isLoading: contactListsLoading } = useContactLists("", 1, 1000);
+  const { data: verifiedEmails, isLoading: verifiedEmailsLoading } = useVerifiedIdentities();
   
   const contactLists = contactListsData?.contactLists || [];
   
@@ -83,12 +89,33 @@ export function CreateCampaignModal() {
         newErrors.emailsPerMinute = "Emails per minute must be between 1 and 600";
       }
     }
+
+    // Validate sender fields
+    if (fromName && fromName.length > 100) {
+      newErrors.fromName = "From name must be 100 characters or less";
+    }
+
+    if (fromEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(fromEmail)) {
+        newErrors.fromEmail = "Invalid from email address";
+      } else if (verifiedEmails && !verifiedEmails.includes(fromEmail)) {
+        newErrors.fromEmail = "From email must be a verified address";
+      }
+    }
+
+    if (replyToEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(replyToEmail)) {
+        newErrors.replyToEmail = "Invalid reply-to email address";
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -104,21 +131,36 @@ export function CreateCampaignModal() {
       sendingMode,
       emailsPerMinute: sendingMode === 'turtle' ? emailsPerMinute : undefined,
       maxConcurrentBatches: sendingMode === 'turtle' ? 1 : undefined,
-      scheduledFor: sendNow ? undefined : scheduledFor?.toISOString()
+      scheduledFor: sendNow ? undefined : scheduledFor?.toISOString(),
+      // Include sender fields
+      fromName: fromName.trim() || undefined,
+      fromEmail: fromEmail || undefined,
+      replyToEmail: replyToEmail || undefined,
     };
     
     // Debug log to see what's being sent
     console.log('Creating campaign with data:', {
       ...newCampaign,
       templateId: typeof newCampaign.templateId,
-      contactListId: typeof newCampaign.contactListId
+      contactListId: typeof newCampaign.contactListId,
+      sendNow
     });
     
     createCampaign(newCampaign, {
-      onSuccess: () => {
+      onSuccess: async (createdCampaign) => {
+        // If "Send Now" is selected, automatically trigger the send
+        if (sendNow && createdCampaign?.id) {
+          try {
+            await campaignService.sendNow(createdCampaign.id);
+            toast.success("Campaign created and sent successfully");
+          } catch (sendError: any) {
+            toast.error(`Campaign created but failed to send: ${sendError.message}`);
+          }
+        } else {
+          toast.success("Campaign created successfully");
+        }
         setOpen(false);
         resetForm();
-        toast.success("Campaign created successfully");
       },
       onError: (error: any) => {
         // Handle API validation errors
@@ -148,6 +190,9 @@ export function CreateCampaignModal() {
     setSendNow(true);
     setSendingMode('normal');
     setEmailsPerMinute(30);
+    setFromName("Gravity Point Media");
+    setFromEmail("support@send.gravitypointmedia.com");
+    setReplyToEmail("support@gravitypointmedia.com");
     setErrors({});
   };
 
@@ -279,6 +324,104 @@ export function CreateCampaignModal() {
                 )}
               </div>
             </div>
+            
+            {/* Sender Settings Section */}
+            <div className="border-t border-gray-200 pt-4">
+              <div className="mb-4">
+                <h3 className="text-base font-medium text-gray-900 mb-1">Sender Settings</h3>
+                <p className="text-sm text-gray-500">Configure who the email appears to be from</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* From Name */}
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="fromName" className="text-sm font-medium">
+                    From Name
+                  </Label>
+                  <Input
+                    id="fromName"
+                    value={fromName}
+                    onChange={(e) => setFromName(e.target.value)}
+                    className={cn(errors.fromName && "border-red-500")}
+                    placeholder="e.g., John Doe, Support Team"
+                    maxLength={100}
+                    aria-describedby="fromName-help"
+                  />
+                  <p id="fromName-help" className="text-xs text-gray-500">
+                    The display name recipients will see as the sender
+                  </p>
+                  {errors.fromName && (
+                    <p className="text-xs text-red-500 mt-1">{errors.fromName}</p>
+                  )}
+                </div>
+
+                {/* From Email */}
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="fromEmail" className="text-sm font-medium">
+                    From Email Address
+                  </Label>
+                  <Select 
+                    value={fromEmail} 
+                    onValueChange={setFromEmail}
+                  >
+                    <SelectTrigger 
+                      id="fromEmail" 
+                      className={cn(errors.fromEmail && "border-red-500")}
+                      aria-describedby="fromEmail-help"
+                    >
+                      <SelectValue placeholder={verifiedEmailsLoading ? "Loading verified emails..." : "Select verified email"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {verifiedEmailsLoading ? (
+                        <div className="p-2 flex items-center justify-center">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <span>Loading verified emails...</span>
+                        </div>
+                      ) : verifiedEmails && verifiedEmails.length > 0 ? (
+                        verifiedEmails.map((email) => (
+                          <SelectItem key={email} value={email}>
+                            {email}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="support@send.gravitypointmedia.com">
+                          support@send.gravitypointmedia.com
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p id="fromEmail-help" className="text-xs text-gray-500">
+                    Select a verified email address to send from
+                  </p>
+                  {errors.fromEmail && (
+                    <p className="text-xs text-red-500 mt-1">{errors.fromEmail}</p>
+                  )}
+                </div>
+
+                {/* Reply-To Email */}
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="replyToEmail" className="text-sm font-medium">
+                    Reply-To Email
+                  </Label>
+                  <Input
+                    id="replyToEmail"
+                    type="email"
+                    value={replyToEmail}
+                    onChange={(e) => setReplyToEmail(e.target.value)}
+                    className={cn(errors.replyToEmail && "border-red-500")}
+                    placeholder="e.g., support@company.com"
+                    aria-describedby="replyToEmail-help"
+                  />
+                  <p id="replyToEmail-help" className="text-xs text-gray-500">
+                    Where recipients' replies will be sent
+                  </p>
+                  {errors.replyToEmail && (
+                    <p className="text-xs text-red-500 mt-1">{errors.replyToEmail}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-4 items-start gap-4">
               <Label className="text-right mt-2">
                 Sending Mode

@@ -28,6 +28,10 @@ export interface Campaign {
   sendingMode?: 'normal' | 'turtle';
   emailsPerMinute?: number;
   maxConcurrentBatches?: number;
+  // Sender fields
+  fromName?: string;
+  fromEmail?: string;
+  replyToEmail?: string;
   template?: Template;
   contactList?: ContactList;
   createdAt: string;

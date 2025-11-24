@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2, MoreVertical, Edit, Trash2, Clock, AlertTriangle, Send, StopCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useTemplates, useContactLists, useUpdateCampaign, useDeleteCampaign, useScheduleCampaign, useCancelSchedule, useSendCampaign, useStopCampaign } from "@/hooks";
+import { useTemplates, useContactLists, useUpdateCampaign, useDeleteCampaign, useScheduleCampaign, useCancelSchedule, useSendCampaign, useStopCampaign, useVerifiedIdentities } from "@/hooks";
 import { Campaign } from "@/lib/types";
 import { RatePresetButtons } from "./RatePresetButtons";
 import {
@@ -62,11 +62,16 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
   );
   const [sendingMode, setSendingMode] = useState<'normal' | 'turtle'>(campaign.sendingMode || 'normal');
   const [emailsPerMinute, setEmailsPerMinute] = useState(campaign.emailsPerMinute || 30);
+  // Sender fields
+  const [fromName, setFromName] = useState(campaign.fromName || "Gravity Point Media");
+  const [fromEmail, setFromEmail] = useState(campaign.fromEmail || "support@send.gravitypointmedia.com");
+  const [replyToEmail, setReplyToEmail] = useState(campaign.replyToEmail || "support@gravitypointmedia.com");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch templates and contact lists
   const { data: templates, isLoading: templatesLoading } = useTemplates();
   const { data: contactListsData, isLoading: contactListsLoading } = useContactLists("", 1, 1000);
+  const { data: verifiedEmails, isLoading: verifiedEmailsLoading } = useVerifiedIdentities();
   const contactLists = contactListsData?.contactLists || [];
 
   // Mutations
@@ -113,6 +118,27 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
         newErrors.emailsPerMinute = "Emails per minute must be between 1 and 600";
       }
     }
+
+    // Validate sender fields
+    if (fromName && fromName.length > 100) {
+      newErrors.fromName = "From name must be 100 characters or less";
+    }
+
+    if (fromEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(fromEmail)) {
+        newErrors.fromEmail = "Invalid from email address";
+      } else if (verifiedEmails && !verifiedEmails.includes(fromEmail)) {
+        newErrors.fromEmail = "From email must be a verified address";
+      }
+    }
+
+    if (replyToEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(replyToEmail)) {
+        newErrors.replyToEmail = "Invalid reply-to email address";
+      }
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -132,6 +158,10 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
       sendingMode,
       emailsPerMinute: sendingMode === 'turtle' ? emailsPerMinute : undefined,
       maxConcurrentBatches: sendingMode === 'turtle' ? 1 : undefined,
+      // Include sender fields
+      fromName: fromName.trim() || undefined,
+      fromEmail: fromEmail || undefined,
+      replyToEmail: replyToEmail || undefined,
     }, {
       onSuccess: () => {
         setEditMode(false);
@@ -408,6 +438,103 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
                   </div>
                 </div>
 
+                {/* Sender Settings Section */}
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="mb-4">
+                    <h3 className="text-base font-medium text-gray-900 mb-1">Sender Settings</h3>
+                    <p className="text-sm text-gray-500">Configure who the email appears to be from</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* From Name */}
+                    <div className="grid grid-cols-1 gap-2">
+                      <Label htmlFor="editFromName" className="text-sm font-medium">
+                        From Name
+                      </Label>
+                      <Input
+                        id="editFromName"
+                        value={fromName}
+                        onChange={(e) => setFromName(e.target.value)}
+                        className={cn(errors.fromName && "border-red-500")}
+                        placeholder="e.g., John Doe, Support Team"
+                        maxLength={100}
+                        aria-describedby="editFromName-help"
+                      />
+                      <p id="editFromName-help" className="text-xs text-gray-500">
+                        The display name recipients will see as the sender
+                      </p>
+                      {errors.fromName && (
+                        <p className="text-xs text-red-500 mt-1">{errors.fromName}</p>
+                      )}
+                    </div>
+
+                    {/* From Email */}
+                    <div className="grid grid-cols-1 gap-2">
+                      <Label htmlFor="editFromEmail" className="text-sm font-medium">
+                        From Email Address
+                      </Label>
+                      <Select 
+                        value={fromEmail} 
+                        onValueChange={setFromEmail}
+                      >
+                        <SelectTrigger 
+                          id="editFromEmail" 
+                          className={cn(errors.fromEmail && "border-red-500")}
+                          aria-describedby="editFromEmail-help"
+                        >
+                          <SelectValue placeholder={verifiedEmailsLoading ? "Loading verified emails..." : "Select verified email"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {verifiedEmailsLoading ? (
+                            <div className="p-2 flex items-center justify-center">
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              <span>Loading verified emails...</span>
+                            </div>
+                          ) : verifiedEmails && verifiedEmails.length > 0 ? (
+                            verifiedEmails.map((email) => (
+                              <SelectItem key={email} value={email}>
+                                {email}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="support@send.gravitypointmedia.com">
+                              support@send.gravitypointmedia.com
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <p id="editFromEmail-help" className="text-xs text-gray-500">
+                        Select a verified email address to send from
+                      </p>
+                      {errors.fromEmail && (
+                        <p className="text-xs text-red-500 mt-1">{errors.fromEmail}</p>
+                      )}
+                    </div>
+
+                    {/* Reply-To Email */}
+                    <div className="grid grid-cols-1 gap-2">
+                      <Label htmlFor="editReplyToEmail" className="text-sm font-medium">
+                        Reply-To Email
+                      </Label>
+                      <Input
+                        id="editReplyToEmail"
+                        type="email"
+                        value={replyToEmail}
+                        onChange={(e) => setReplyToEmail(e.target.value)}
+                        className={cn(errors.replyToEmail && "border-red-500")}
+                        placeholder="e.g., support@company.com"
+                        aria-describedby="editReplyToEmail-help"
+                      />
+                      <p id="editReplyToEmail-help" className="text-xs text-gray-500">
+                        Where recipients' replies will be sent
+                      </p>
+                      {errors.replyToEmail && (
+                        <p className="text-xs text-red-500 mt-1">{errors.replyToEmail}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-4 items-start gap-4">
                   <Label className="text-right mt-2">
                     Sending Mode
@@ -508,6 +635,26 @@ export function CampaignControlModal({ campaign, onSuccess }: CampaignControlMod
                     {campaign.contactList?.name} ({campaign.totalRecipients} contacts)
                   </div>
                 </div>
+                
+                {/* Sender Settings in View Mode */}
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="mb-3">
+                    <h3 className="text-sm font-medium text-gray-900">Sender Settings</h3>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">From Name</Label>
+                    <div className="col-span-3">{campaign.fromName || "Gravity Point Media"}</div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">From Email</Label>
+                    <div className="col-span-3">{campaign.fromEmail || "support@send.gravitypointmedia.com"}</div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right">Reply-To Email</Label>
+                    <div className="col-span-3">{campaign.replyToEmail || "support@gravitypointmedia.com"}</div>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label className="text-right">Sending Mode</Label>
                   <div className="col-span-3 flex items-center gap-2">

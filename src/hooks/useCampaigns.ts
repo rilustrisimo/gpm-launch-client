@@ -178,4 +178,16 @@ export const useStopCampaign = () => {
       toast.error(`Failed to stop campaign: ${error.message}`);
     },
   });
-}; 
+};
+
+/**
+ * Hook to fetch verified email identities
+ */
+export const useVerifiedIdentities = () => {
+  return useQuery({
+    queryKey: ['verifiedIdentities'],
+    queryFn: () => campaignService.getVerifiedIdentities(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
