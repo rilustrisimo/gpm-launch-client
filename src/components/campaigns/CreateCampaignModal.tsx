@@ -101,7 +101,8 @@ export function CreateCampaignModal() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(fromEmail)) {
         newErrors.fromEmail = "Invalid from email address";
-      } else if (verifiedEmails && !verifiedEmails.includes(fromEmail)) {
+      } else if (selectedPreset === 'custom' && verifiedEmails && !verifiedEmails.includes(fromEmail)) {
+        // Only validate against verified emails list if using custom preset
         newErrors.fromEmail = "From email must be a verified address";
       }
     }
