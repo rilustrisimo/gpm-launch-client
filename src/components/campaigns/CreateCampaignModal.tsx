@@ -23,6 +23,7 @@ import { useTemplates, useContactLists, useCreateCampaign, useVerifiedIdentities
 import { Campaign } from "@/lib/types";
 import { RatePresetButtons } from "./RatePresetButtons";
 import { campaignService } from "@/lib/services/campaign.service";
+import { SenderPresets, SenderPreset, detectPreset } from "./SenderPresets";
 
 export function CreateCampaignModal() {
   const [open, setOpen] = useState(false);
@@ -35,6 +36,7 @@ export function CreateCampaignModal() {
   const [sendingMode, setSendingMode] = useState<'normal' | 'turtle'>('normal');
   const [emailsPerMinute, setEmailsPerMinute] = useState(30);
   // Sender fields
+  const [selectedPreset, setSelectedPreset] = useState<string>('gravity-point');
   const [fromName, setFromName] = useState("Gravity Point Media");
   const [fromEmail, setFromEmail] = useState("support@send.gravitypointmedia.com");
   const [replyToEmail, setReplyToEmail] = useState("support@gravitypointmedia.com");
@@ -190,10 +192,39 @@ export function CreateCampaignModal() {
     setSendNow(true);
     setSendingMode('normal');
     setEmailsPerMinute(30);
+    setSelectedPreset('gravity-point');
     setFromName("Gravity Point Media");
     setFromEmail("support@send.gravitypointmedia.com");
     setReplyToEmail("support@gravitypointmedia.com");
     setErrors({});
+  };
+
+  const handlePresetSelect = (preset: SenderPreset) => {
+    setSelectedPreset(preset.id);
+    if (preset.id !== 'custom') {
+      setFromName(preset.fromName);
+      setFromEmail(preset.fromEmail);
+      setReplyToEmail(preset.replyToEmail);
+    }
+    // Clear any sender-related errors when changing preset
+    setErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.fromName;
+      delete newErrors.fromEmail;
+      delete newErrors.replyToEmail;
+      return newErrors;
+    });
+  };
+
+  // Update preset selection when manual changes are made
+  const handleFromNameChange = (value: string) => {
+    setFromName(value);
+    setSelectedPreset(detectPreset(value, fromEmail));
+  };
+
+  const handleFromEmailChange = (value: string) => {
+    setFromEmail(value);
+    setSelectedPreset(detectPreset(fromName, value));
   };
 
   return (
@@ -332,6 +363,14 @@ export function CreateCampaignModal() {
                 <p className="text-sm text-gray-500">Configure who the email appears to be from</p>
               </div>
               
+              {/* Sender Presets */}
+              <div className="mb-4">
+                <SenderPresets 
+                  selectedPresetId={selectedPreset}
+                  onSelectPreset={handlePresetSelect}
+                />
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* From Name */}
                 <div className="grid grid-cols-1 gap-2">
@@ -341,14 +380,18 @@ export function CreateCampaignModal() {
                   <Input
                     id="fromName"
                     value={fromName}
-                    onChange={(e) => setFromName(e.target.value)}
+                    onChange={(e) => handleFromNameChange(e.target.value)}
                     className={cn(errors.fromName && "border-red-500")}
                     placeholder="e.g., John Doe, Support Team"
                     maxLength={100}
                     aria-describedby="fromName-help"
+                    disabled={selectedPreset !== 'custom'}
                   />
                   <p id="fromName-help" className="text-xs text-gray-500">
-                    The display name recipients will see as the sender
+                    {selectedPreset !== 'custom' 
+                      ? 'Select "Custom" preset to edit this field'
+                      : 'The display name recipients will see as the sender'
+                    }
                   </p>
                   {errors.fromName && (
                     <p className="text-xs text-red-500 mt-1">{errors.fromName}</p>
@@ -362,7 +405,8 @@ export function CreateCampaignModal() {
                   </Label>
                   <Select 
                     value={fromEmail} 
-                    onValueChange={setFromEmail}
+                    onValueChange={handleFromEmailChange}
+                    disabled={selectedPreset !== 'custom'}
                   >
                     <SelectTrigger 
                       id="fromEmail" 
@@ -391,7 +435,10 @@ export function CreateCampaignModal() {
                     </SelectContent>
                   </Select>
                   <p id="fromEmail-help" className="text-xs text-gray-500">
-                    Select a verified email address to send from
+                    {selectedPreset !== 'custom'
+                      ? 'Select "Custom" preset to change this'
+                      : 'Select a verified email address to send from'
+                    }
                   </p>
                   {errors.fromEmail && (
                     <p className="text-xs text-red-500 mt-1">{errors.fromEmail}</p>
@@ -411,9 +458,13 @@ export function CreateCampaignModal() {
                     className={cn(errors.replyToEmail && "border-red-500")}
                     placeholder="e.g., support@company.com"
                     aria-describedby="replyToEmail-help"
+                    disabled={selectedPreset !== 'custom'}
                   />
                   <p id="replyToEmail-help" className="text-xs text-gray-500">
-                    Where recipients' replies will be sent
+                    {selectedPreset !== 'custom'
+                      ? 'Select "Custom" preset to edit this field'
+                      : 'Where recipients\' replies will be sent'
+                    }
                   </p>
                   {errors.replyToEmail && (
                     <p className="text-xs text-red-500 mt-1">{errors.replyToEmail}</p>
